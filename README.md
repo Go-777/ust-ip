@@ -278,6 +278,7 @@ These are the parameters most frequently used in the training/eval `.sh` scripts
 - `--ppo-epochs`: PPO update epochs per batch
 - `--action-top-k`: number of skills selected per step
 - `--reward-metric`: `f1` or `llm_judge`
+- `--llm-judge-model`: model used for LLM-judge scoring during training and text-dataset evaluation
 
 **Designer / evolution**
 - `--enable-designer`: enable skill evolution

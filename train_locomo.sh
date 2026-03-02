@@ -1,7 +1,8 @@
 #!/bin/bash
 export CUDA_VISIBLE_DEVICES=0
 
-
+# --disable-flash-attn \
+# --reward-metric llm_judge \
 python main.py \
     --dataset locomo \
     --data-file "[YOUR_DATA_PATH]" \
@@ -26,7 +27,7 @@ python main.py \
     --designer-max-changes 3 \
     --designer-failure-window-epochs 100 \
     --designer-failure-pool-size 2000 \
-    --reward-metric llm_judge \
+    --reward-metric f1 \
     --designer-new-skill-hint \
     --device cuda \
     --enable-designer \

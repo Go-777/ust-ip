@@ -1,9 +1,8 @@
 #!/bin/bash
 export CUDA_VISIBLE_DEVICES=0
 
-
+# --disable-flash-attn \
 python main.py \
-    --disable-flash-attn \
     --alfworld-eval-query-source objective \
     --alfworld-pair-a-min 40 \
     --alfworld-pair-a-max 60 \

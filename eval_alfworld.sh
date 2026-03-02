@@ -1,10 +1,9 @@
 #!/bin/bash
 export CUDA_VISIBLE_DEVICES=0
 
-
+# --disable-flash-attn \
 python main.py \
     --memory-cache-suffix "alfworld_eval" \
-    --disable-flash-attn \
     --eval-only \
     --action-top-k 5 \
     --mem-top-k-eval 20 \
