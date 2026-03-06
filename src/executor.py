@@ -171,10 +171,12 @@ class Executor:
     def _parse_response(self, response: str, num_retrieved: int) -> List[ExecutionResult]:
         """
         Parse LLM response to extract actions and content.
-        Supports multiple ACTION blocks in a single response.
+        Supports multiple action blocks in a single response.
 
         Expected format (can repeat multiple times):
         ACTION: INSERT/UPDATE/DELETE/NOOP
+        or line-only action marker:
+        INSERT/UPDATE/DELETE/NOOP
         [MEMORY_INDEX: <index>]  # for UPDATE/DELETE
         [MEMORY_ITEM/UPDATED_MEMORY: <content>]  # for INSERT/UPDATE
         REASONING: <reasoning>
@@ -185,13 +187,22 @@ class Executor:
         response = self._normalize_response(response)
         results = []
 
-        # Split response into individual action blocks
-        # Find all positions where "ACTION:" appears
+        # Split response into individual action blocks.
+        # Primary format: "ACTION: INSERT/UPDATE/DELETE/NOOP"
         action_pattern = re.compile(
             r'(?<!\w)ACTION\s*(?::|=|-)?\s*(INSERT|UPDATE|DELETE|NOOP)\b',
             re.IGNORECASE
         )
         action_matches = list(action_pattern.finditer(response))
+
+        # Compatibility format (no ACTION prefix):
+        # INSERT
+        # MEMORY_ITEM: ...
+        if not action_matches:
+            line_action_pattern = re.compile(
+                r'(?im)^(?:[-*]\s*)?(INSERT|UPDATE|DELETE|NOOP)\s*(?::|=|-)?\s*$'
+            )
+            action_matches = list(line_action_pattern.finditer(response))
 
         if not action_matches:
             json_results = self._parse_json_response(response, num_retrieved)
@@ -323,12 +334,20 @@ class Executor:
         Returns:
             ExecutionResult
         """
-        # Extract ACTION
+        # Extract ACTION (preferred explicit format)
         action_match = re.search(
             r'ACTION\s*(?::|=|-)?\s*(INSERT|UPDATE|DELETE|NOOP)\b',
             block,
             re.IGNORECASE
         )
+
+        # Backward-compatible fallback: line-only action marker.
+        if not action_match:
+            action_match = re.search(
+                r'(?im)^(?:[-*]\s*)?(INSERT|UPDATE|DELETE|NOOP)\s*(?::|=|-)?\s*$',
+                block
+            )
+
         if not action_match:
             return ExecutionResult(
                 action_type="NOOP",
