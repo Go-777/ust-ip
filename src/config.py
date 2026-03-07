@@ -98,6 +98,8 @@ class AgenticMemoryConfig:
         # Dataset settings
         self.dataset = "locomo"  # locomo, longmemeval, hotpotqa, or alfworld
         self.batch_size = 4  # episodes per PPO update
+        self.inference_workers = 1  # workers for sample-level memory inference (text datasets)
+        self.inference_session_workers = 1  # workers for session-level inference within each sample
         self.hotpotqa_eval_file = "./data/eval_200.json"
         self.alfworld_eval_file = "./data/alfworld_expert_eval_in_distribution.json"
 
@@ -225,6 +227,10 @@ def get_agentic_memory_args():
     parser.add_argument('--llm-judge-model', type=str, default='openai/gpt-oss-120b',
                         help='Model for LLM judge scoring')
     parser.add_argument('--batch-size', type=int, default=16, help='Episodes per PPO update')
+    parser.add_argument('--inference-workers', type=int, default=1,
+                        help='Workers for sample-level memory inference on text datasets (1 = serial)')
+    parser.add_argument('--inference-session-workers', type=int, default=1,
+                        help='Workers for session-level inference within each sample (1 = serial)')
 
     # Retriever args
     parser.add_argument('--retriever', type=str, default='contriever', choices=['dpr', 'contriever', 'dragon'])

@@ -58,6 +58,7 @@
 
 ## 📰 News
 
+- 🚀 **[2026-03]**: We have improved the parallel memory extraction pipeline for evaluation and cache building, making MemSkill noticeably faster in large-scale runs. We also added clearer controls for concurrency with `--inference-workers` at the sample level and `--inference-session-workers` within each sample at the chunk/span level, which together can significantly accelerate memory extraction. For more details, please refer to [Commonly Used Configs](#️-commonly-used-configs).
 
 - ⭐ **[2026-03]**: We have released the MemSkill controller weights in our [Hugging Face collection](https://huggingface.co/collections/XaiverZ/memskill), which can now be used directly for inference on suitable datasets. Please note that differences in experimental environments and settings may require some adaptation; when necessary, we recommend retraining and tuning key hyperparameters on a held-out validation split, especially `chunk_size` and the number of selected skills during inference (`action_top_k`), to ensure reliable performance. We hope these resources help advance self-evolving agent memory systems, and we'd be glad to hear from the community.
 
@@ -261,7 +262,8 @@ These are the parameters most frequently used in the training/eval `.sh` scripts
 - `--dataset`: dataset name (`locomo`, `longmemeval`, `hotpotqa`, `alfworld`)
 - `--data-file`: path to the main dataset file
 - `--model`: base LLM name
-- `--api`: use API-based inference
+- `--designer-model`: base LLM name for designer (default: the same as --model)
+- `--api`: use API-based inference (without this flag, the model is loaded locally with vLLM for inference)
 - `--api-base`: API endpoint
 - `--api-key`: one or more API keys
 - `--disable-flash-attn`: Flash Attention is enabled by default; add this flag to disable it.
@@ -273,6 +275,12 @@ These are the parameters most frequently used in the training/eval `.sh` scripts
 - `--mem-top-k-eval`: top‑K memories for evaluation
 - `--session-mode`: span granularity (`turn`, `turn-pair`, `full-session`, `fixed-length`)
 - `--chunk-size`, `--chunk-overlap`: fixed-length chunking size/overlap
+- `--inference-workers`: number of parallel workers for sample-level memory inference(`1` = serial)
+- `--inference-session-workers`: number of parallel workers for session/span-level memory inference within each sample (`1` = serial; **values > 1 may degrade performance**)
+
+> [!WARNING]
+>
+> `--inference-workers` increases sample-level concurrency and can usually be set higher as long as your API rate limit can sustain it, without affecting model performance. `--inference-session-workers` increases within-sample concurrency for sequential memory extraction and can speed up runs, but values greater than `1` may hurt task performance. Together with `--chunk-size`, these knobs can significantly accelerate memory extraction, so tune them carefully against quality.
 
 **Training**
 - `--batch-size`: episodes per PPO update
@@ -294,6 +302,7 @@ These are the parameters most frequently used in the training/eval `.sh` scripts
 - `--load-checkpoint`: checkpoint path
 - `--save-dir`: where to save checkpoints
 - `--out-file`: output result file
+- `--overwrite`: force rebuilding memory caches under the run's `memories/` directory instead of reusing existing ones
 - `--device`: `cuda` or `cpu`
 
 **ALFWorld‑specific**
@@ -334,3 +343,4 @@ We thank the authors and maintainers of **[LoCoMo](https://github.com/snap-resea
   year={2026}
 }
 ```
+

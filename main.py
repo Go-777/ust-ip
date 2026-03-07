@@ -11,10 +11,11 @@ import numpy as np
 import torch
 from tqdm import tqdm
 from typing import Dict, Any, List, Optional
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 
 from src.config import AgenticMemoryConfig, get_agentic_memory_args
 from src.trainer import BaseTrainer, get_trainer
+from src.executor import ExecutionResult
 from src.memory_bank import MemoryBank
 from src.data_processing.alfworld import chunk_trajectories_by_tokens
 from src.alfworld_env_runner import run_alfworld_episode
@@ -111,10 +112,11 @@ def split_data(data, dataset_type: str):
     return train_data, val_data, test_data
 
 
-def _apply_memory_extraction_step(trainer: BaseTrainer,
-                                  memory_bank,
-                                  session_text: str,
-                                  session_embedding: np.ndarray = None):
+def _extract_memory_actions_step(trainer: BaseTrainer,
+                                 memory_bank,
+                                 session_text: str,
+                                 session_embedding: np.ndarray = None,
+                                 executor=None):
     if session_embedding is None:
         session_embedding = trainer.state_encoder._encode_texts(session_text)
         if session_embedding.ndim == 2:
@@ -149,7 +151,8 @@ def _apply_memory_extraction_step(trainer: BaseTrainer,
         and str(getattr(op, "update_type", "")).lower() != "noop"
     ]
     # print([i.instruction_template for i in executor_ops])
-    exec_result = trainer.executor.execute_operation(
+    exec_impl = executor if executor is not None else trainer.executor
+    exec_result = exec_impl.execute_operation(
         operation=executor_ops,
         session_text=session_text,
         retrieved_memories=retrieved_memories
@@ -162,13 +165,170 @@ def _apply_memory_extraction_step(trainer: BaseTrainer,
         if name and name not in seen:
             seen.add(name)
             operation_names.append(name)
-    trainer.executor.apply_to_memory_bank(
-        results=exec_result,
+    return {
+        "results": exec_result,
+        "retrieved_indices": list(retrieved_indices),
+        "operation_names": operation_names
+    }
+
+
+def _apply_extracted_memory_actions(trainer: BaseTrainer,
+                                    memory_bank,
+                                    extracted: Dict[str, Any],
+                                    executor=None):
+    exec_impl = executor if executor is not None else trainer.executor
+    exec_impl.apply_to_memory_bank(
+        results=extracted.get("results", []),
         memory_bank=memory_bank,
-        retrieved_indices=retrieved_indices,
-        operation_name=operation_names
+        retrieved_indices=extracted.get("retrieved_indices", []),
+        operation_name=extracted.get("operation_names", [])
     )
 
+
+def _normalize_insert_content(text: str) -> str:
+    return re.sub(r'\s+', ' ', str(text or '')).strip()
+
+
+def _clone_snapshot_memory_bank(snapshot_dict: Dict[str, Any], state_encoder=None) -> MemoryBank:
+    snapshot_bank = MemoryBank.from_dict(snapshot_dict)
+    if state_encoder is not None:
+        snapshot_bank.set_state_encoder(state_encoder)
+    return snapshot_bank
+
+
+def _merge_batch_extracted_actions(extracted_batch: List[Dict[str, Any]],
+                                   batch_memory_size: int) -> Dict[str, Any]:
+    ordered = sorted(extracted_batch, key=lambda x: x["session_idx"])
+
+    update_by_actual: Dict[int, ExecutionResult] = {}
+    delete_by_actual: Dict[int, ExecutionResult] = {}
+    insert_seen = set()
+    merged_inserts: List[ExecutionResult] = []
+    merged_operation_names = []
+    op_seen = set()
+
+    for entry in ordered:
+        extracted = entry.get("extracted", {})
+
+        for op_name in extracted.get("operation_names", []) or []:
+            name = str(op_name).strip()
+            if name and name not in op_seen:
+                op_seen.add(name)
+                merged_operation_names.append(name)
+
+        retrieved_indices = extracted.get("retrieved_indices", []) or []
+        results = extracted.get("results", []) or []
+        for result in results:
+            if not getattr(result, "success", False):
+                continue
+
+            action_type = str(getattr(result, "action_type", "")).upper()
+            reasoning = str(getattr(result, "reasoning", "") or "")
+
+            if action_type == "INSERT":
+                content = str(getattr(result, "memory_content", "") or "").strip()
+                if not content:
+                    continue
+                norm_key = _normalize_insert_content(content)
+                if not norm_key or norm_key in insert_seen:
+                    continue
+                insert_seen.add(norm_key)
+                merged_inserts.append(ExecutionResult(
+                    action_type="INSERT",
+                    success=True,
+                    memory_content=content,
+                    reasoning=reasoning
+                ))
+                continue
+
+            if action_type not in ("UPDATE", "DELETE"):
+                continue
+
+            try:
+                rel_idx = int(getattr(result, "memory_index", -1))
+            except Exception:
+                print(
+                    f"[Memory][SessionParallel] Dropped {action_type}: "
+                    "invalid MEMORY_INDEX value."
+                )
+                continue
+            if rel_idx < 0 or rel_idx >= len(retrieved_indices):
+                print(
+                    f"[Memory][SessionParallel] Dropped {action_type}: "
+                    f"MEMORY_INDEX {rel_idx} out of range for retrieved_indices size {len(retrieved_indices)}."
+                )
+                continue
+
+            try:
+                actual_idx = int(retrieved_indices[rel_idx])
+            except Exception:
+                print(
+                    f"[Memory][SessionParallel] Dropped {action_type}: "
+                    f"retrieved_indices[{rel_idx}] is not a valid integer index."
+                )
+                continue
+            if actual_idx < 0 or actual_idx >= batch_memory_size:
+                print(
+                    f"[Memory][SessionParallel] Dropped {action_type}: "
+                    f"actual memory index {actual_idx} out of snapshot range [0, {batch_memory_size})."
+                )
+                continue
+
+            if action_type == "DELETE":
+                delete_by_actual[actual_idx] = ExecutionResult(
+                    action_type="DELETE",
+                    success=True,
+                    memory_index=actual_idx,
+                    reasoning=reasoning
+                )
+                if actual_idx in update_by_actual:
+                    del update_by_actual[actual_idx]
+            else:
+                if actual_idx in delete_by_actual:
+                    continue
+                content = str(getattr(result, "memory_content", "") or "").strip()
+                if not content:
+                    continue
+                update_by_actual[actual_idx] = ExecutionResult(
+                    action_type="UPDATE",
+                    success=True,
+                    memory_index=actual_idx,
+                    memory_content=content,
+                    reasoning=reasoning
+                )
+
+    merged_results: List[ExecutionResult] = []
+    for actual_idx in sorted(update_by_actual.keys()):
+        merged_results.append(update_by_actual[actual_idx])
+    for actual_idx in sorted(delete_by_actual.keys()):
+        merged_results.append(delete_by_actual[actual_idx])
+    merged_results.extend(merged_inserts)
+
+    return {
+        "results": merged_results,
+        "retrieved_indices": list(range(batch_memory_size)),
+        "operation_names": merged_operation_names
+    }
+
+
+def _apply_memory_extraction_step(trainer: BaseTrainer,
+                                  memory_bank,
+                                  session_text: str,
+                                  session_embedding: np.ndarray = None,
+                                  executor=None):
+    extracted = _extract_memory_actions_step(
+        trainer,
+        memory_bank,
+        session_text=session_text,
+        session_embedding=session_embedding,
+        executor=executor
+    )
+    _apply_extracted_memory_actions(
+        trainer,
+        memory_bank,
+        extracted=extracted,
+        executor=executor
+    )
     memory_bank.step()
 
 
@@ -187,18 +347,93 @@ def _resolve_sample_id(trainer: BaseTrainer, conversation: Dict[str, Any], conv_
 def _build_memory_bank_from_sessions(trainer: BaseTrainer,
                                      sessions,
                                      session_embeddings: np.ndarray = None,
-                                     total: int = None):
+                                     total: int = None,
+                                     executor=None,
+                                     show_progress: bool = True,
+                                     session_parallel_workers: int = 1):
     memory_bank = trainer._initialize_memory_bank()
-    for session_idx, session_text in tqdm(enumerate(sessions), total=total, desc="Sessions"):
+
+    workers = max(1, int(session_parallel_workers or 1))
+    if workers == 1:
+        iterator = enumerate(sessions)
+        if show_progress:
+            iterator = tqdm(iterator, total=total, desc="Sessions")
+        for session_idx, session_text in iterator:
+            session_embedding = None
+            if session_embeddings is not None:
+                session_embedding = session_embeddings[session_idx]
+            _apply_memory_extraction_step(
+                trainer,
+                memory_bank,
+                session_text=session_text,
+                session_embedding=session_embedding,
+                executor=executor
+            )
+        return memory_bank
+
+    session_texts = sessions if isinstance(sessions, list) else list(sessions)
+    session_records = []
+    for session_idx, session_text in enumerate(session_texts):
         session_embedding = None
         if session_embeddings is not None:
             session_embedding = session_embeddings[session_idx]
-        _apply_memory_extraction_step(
-            trainer,
-            memory_bank,
-            session_text=session_text,
-            session_embedding=session_embedding
-        )
+        session_records.append((session_idx, session_text, session_embedding))
+
+    total_sessions = total if total is not None else len(session_records)
+    progress = tqdm(total=total_sessions, desc="Sessions") if show_progress else None
+
+    try:
+        for start in range(0, len(session_records), workers):
+            batch = session_records[start:start + workers]
+            if not batch:
+                continue
+
+            snapshot_dict = memory_bank.to_dict()
+            snapshot_size = len(memory_bank.memories)
+            local_executor_cls = executor.__class__ if executor is not None else trainer.executor.__class__
+
+            with ThreadPoolExecutor(max_workers=min(workers, len(batch))) as pool:
+                future_to_idx = {
+                    pool.submit(
+                        _extract_memory_actions_step,
+                        trainer,
+                        _clone_snapshot_memory_bank(snapshot_dict, memory_bank.state_encoder),
+                        session_text,
+                        session_embedding,
+                        local_executor_cls(trainer.args)
+                    ): session_idx
+                    for session_idx, session_text, session_embedding in batch
+                }
+
+                extracted_batch = []
+                for future in as_completed(future_to_idx):
+                    session_idx = future_to_idx[future]
+                    extracted = future.result()
+                    extracted_batch.append({
+                        "session_idx": session_idx,
+                        "extracted": extracted
+                    })
+
+            merged = _merge_batch_extracted_actions(
+                extracted_batch=extracted_batch,
+                batch_memory_size=snapshot_size
+            )
+            _apply_extracted_memory_actions(
+                trainer,
+                memory_bank,
+                extracted=merged,
+                executor=executor
+            )
+
+            for _ in range(len(batch)):
+                memory_bank.step()
+
+            if progress is not None:
+                progress.update(len(batch))
+    finally:
+        if progress is not None:
+            progress.close()
+
     return memory_bank
 
 
@@ -435,8 +670,39 @@ def infer_text_dataset_memories(trainer: BaseTrainer, test_data, args):
 
     memory_banks: Dict[str, MemoryBank] = {}
     overwrite = bool(getattr(args, "overwrite", False))
+    inference_workers = int(
+        getattr(args, "inference_workers", getattr(trainer.config, "inference_workers", 1)) or 1
+    )
+    inference_workers = max(1, inference_workers)
+    inference_session_workers = int(
+        getattr(args, "inference_session_workers", getattr(trainer.config, "inference_session_workers", 1)) or 1
+    )
+    inference_session_workers = max(1, inference_session_workers)
     loaded_count = 0
     computed_count = 0
+    pending_jobs = []
+
+    def _compute_single_sample_memory(conversation, sample_id: str, memory_path: str, use_local_executor: bool):
+        exec_impl = trainer.executor.__class__(args) if use_local_executor else trainer.executor
+        sessions, episode_length, precompute = trainer._prepare_sessions(conversation)
+        if precompute and isinstance(sessions, list):
+            session_embeddings = trainer.state_encoder._encode_texts(sessions)
+            if hasattr(session_embeddings, "ndim") and session_embeddings.ndim == 1:
+                session_embeddings = session_embeddings.reshape(1, -1)
+        else:
+            session_embeddings = None
+
+        total = episode_length if episode_length is not None and episode_length > 0 else None
+        memory_bank = _build_memory_bank_from_sessions(
+            trainer,
+            sessions,
+            session_embeddings=session_embeddings,
+            total=total,
+            executor=exec_impl,
+            show_progress=True,
+            session_parallel_workers=inference_session_workers
+        )
+        return sample_id, memory_path, memory_bank
 
     for conv_idx, conversation in enumerate(tqdm(test_data, desc="Processing")):
         if args.dataset == "longmemeval":
@@ -452,24 +718,36 @@ def infer_text_dataset_memories(trainer: BaseTrainer, test_data, args):
                 memory_banks[sample_id] = cached_bank
                 loaded_count += 1
                 continue
-        sessions, episode_length, precompute = trainer._prepare_sessions(conversation)
-        if precompute and isinstance(sessions, list):
-            session_embeddings = trainer.state_encoder._encode_texts(sessions)
-            if hasattr(session_embeddings, "ndim") and session_embeddings.ndim == 1:
-                session_embeddings = session_embeddings.reshape(1, -1)
-        else:
-            session_embeddings = None
+        pending_jobs.append((conversation, sample_id, memory_path))
 
-        total = episode_length if episode_length is not None and episode_length > 0 else None
-        memory_bank = _build_memory_bank_from_sessions(
-            trainer,
-            sessions,
-            session_embeddings=session_embeddings,
-            total=total
-        )
-        memory_banks[sample_id] = memory_bank
-        _save_memory_bank(memory_path, memory_bank)
-        computed_count += 1
+    if inference_workers == 1:
+        for conversation, sample_id, memory_path in pending_jobs:
+            sid, out_path, memory_bank = _compute_single_sample_memory(
+                conversation=conversation,
+                sample_id=sample_id,
+                memory_path=memory_path,
+                use_local_executor=False
+            )
+            memory_banks[sid] = memory_bank
+            _save_memory_bank(out_path, memory_bank)
+            computed_count += 1
+    else:
+        with ThreadPoolExecutor(max_workers=inference_workers) as pool:
+            futures = [
+                pool.submit(
+                    _compute_single_sample_memory,
+                    conversation,
+                    sample_id,
+                    memory_path,
+                    True
+                )
+                for conversation, sample_id, memory_path in pending_jobs
+            ]
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Computing memories"):
+                sid, out_path, memory_bank = future.result()
+                memory_banks[sid] = memory_bank
+                _save_memory_bank(out_path, memory_bank)
+                computed_count += 1
 
     print(
         f"\nLoaded {loaded_count} cached memory banks; "
@@ -547,6 +825,10 @@ def infer_alfworld_memories(trainer: BaseTrainer, train_data, test_data, args):
 
     memory_dir = os.path.join(os.path.dirname(args.out_file), 'memories')
     os.makedirs(memory_dir, exist_ok=True)
+    inference_session_workers = int(
+        getattr(args, "inference_session_workers", getattr(trainer.config, "inference_session_workers", 1)) or 1
+    )
+    inference_session_workers = max(1, inference_session_workers)
 
     overwrite = bool(getattr(args, "overwrite", False))
     memory_path = _memory_cache_path(
@@ -582,7 +864,9 @@ def infer_alfworld_memories(trainer: BaseTrainer, train_data, test_data, args):
             trainer,
             chunks,
             session_embeddings=session_embeddings,
-            total=len(chunks)
+            total=len(chunks),
+            executor=trainer.executor,
+            session_parallel_workers=inference_session_workers
         )
         _save_memory_bank(memory_path, memory_bank)
         print(f"Saved ALFWorld memory bank to {memory_path}")

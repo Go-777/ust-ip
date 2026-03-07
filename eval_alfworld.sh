@@ -5,6 +5,7 @@ export CUDA_VISIBLE_DEVICES=0
 python main.py \
     --memory-cache-suffix "alfworld_eval" \
     --eval-only \
+    --inference-session-workers 1 \
     --action-top-k 5 \
     --mem-top-k-eval 20 \
     --session-mode fixed-length \

@@ -3,7 +3,10 @@ export CUDA_VISIBLE_DEVICES=0
 
 # --disable-flash-attn \
 python main.py \
+    --memory-cache-suffix "longmemeval_eval" \
     --eval-only \
+    --inference-workers 4 \
+    --inference-session-workers 1 \
     --action-top-k 5 \
     --mem-top-k-eval 20 \
     --session-mode fixed-length \
