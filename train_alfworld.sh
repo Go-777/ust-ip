@@ -2,6 +2,7 @@
 export CUDA_VISIBLE_DEVICES=0
 
 # --disable-flash-attn \
+# --resume-new-wandb-run
 python main.py \
     --alfworld-eval-query-source objective \
     --alfworld-pair-a-min 40 \
@@ -36,8 +37,6 @@ python main.py \
     --designer-new-skill-hint \
     --device cuda \
     --enable-designer \
-    --skip-load-operation-bank \
-    --skip-load-snapshot-manager \
     --wandb-run-name alf-train \
     --save-dir ./checkpoints/alf_with_designer \
     --out-file ./results/alf_with_designer.json

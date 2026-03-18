@@ -58,6 +58,8 @@
 
 ## 📰 News
 
+- 🛠️ **[2026-03]**: We have added support for interrupted training recovery. You can now resume training in the `train_*.sh` scripts by passing `--load-checkpoint`, which restores key training state such as the controller/optimizer, operation bank, designer state (for example, the rolling failure-case pool), and other resume-critical metadata. At the moment, recovery is supported only from checkpoints saved at **outer-epoch boundaries**. By default, resumed runs continue logging to the original W&B run; if you prefer a fresh run for logging, use `--resume-new-wandb-run` instead. For more details, please refer to [Commonly Used Configs](#️-commonly-used-configs).
+
 - 🚀 **[2026-03]**: We have improved the parallel memory extraction pipeline for evaluation and cache building, making MemSkill noticeably faster in large-scale runs. We also added clearer controls for concurrency with `--inference-workers` at the sample level and `--inference-session-workers` within each sample at the chunk/span level, which together can significantly accelerate memory extraction. For more details, please refer to [Commonly Used Configs](#️-commonly-used-configs).
 
 - ⭐ **[2026-03]**: We have released the MemSkill controller weights in our [Hugging Face collection](https://huggingface.co/collections/XaiverZ/memskill), which can now be used directly for inference on suitable datasets. Please note that differences in experimental environments and settings may require some adaptation; when necessary, we recommend retraining and tuning key hyperparameters on a held-out validation split, especially `chunk_size` and the number of selected skills during inference (`action_top_k`), to ensure reliable performance. We hope these resources help advance self-evolving agent memory systems, and we'd be glad to hear from the community.
@@ -299,7 +301,9 @@ These are the parameters most frequently used in the training/eval `.sh` scripts
 
 **Eval / checkpoints**
 - `--eval-only`: run evaluation only
-- `--load-checkpoint`: checkpoint path
+- `--load-checkpoint`: checkpoint path (Training checkpoints are saved at outer-epoch boundaries; resuming with `--load-checkpoint` continues from the next outer epoch instead of restarting from epoch 0)
+- `--resume-new-wandb-run`: resume training state from a checkpoint but log to a fresh W&B run instead of the saved run ID.
+- `--skip-load-operation-bank` / `--skip-load-snapshot-manager`: partial-load options for special cases; do not use them for full resume training.
 - `--save-dir`: where to save checkpoints
 - `--out-file`: output result file
 - `--overwrite`: force rebuilding memory caches under the run's `memories/` directory instead of reusing existing ones

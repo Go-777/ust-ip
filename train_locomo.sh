@@ -3,6 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 
 # --disable-flash-attn \
 # --reward-metric llm_judge \
+# --resume-new-wandb-run
 python main.py \
     --dataset locomo \
     --data-file "[YOUR_DATA_PATH]" \
@@ -31,8 +32,6 @@ python main.py \
     --designer-new-skill-hint \
     --device cuda \
     --enable-designer \
-    --skip-load-operation-bank \
-    --skip-load-snapshot-manager \
     --wandb-run-name locomo-train \
     --save-dir ./checkpoints/locomo_with_designer \
     --out-file ./results/locomo_with_designer.json

@@ -197,6 +197,37 @@ class CaseCollector:
                 self.failure_pool = {}
                 self.latest_epoch = None
 
+    def to_dict(self) -> Dict:
+        """Serialize the rolling failure pool state."""
+        with self._lock:
+            return {
+                'failure_pool': {
+                    key: case.to_dict() for key, case in self.failure_pool.items()
+                },
+                'latest_epoch': self.latest_epoch
+            }
+
+    def load_dict(self, data: Optional[Dict]):
+        """Restore the rolling failure pool state in-place."""
+        if not isinstance(data, dict):
+            return
+
+        failure_pool = data.get('failure_pool', {})
+        latest_epoch = data.get('latest_epoch', None)
+
+        restored_pool: Dict[str, DesignerCase] = {}
+        if isinstance(failure_pool, dict):
+            for key, case_data in failure_pool.items():
+                if not isinstance(case_data, dict):
+                    continue
+                restored_pool[str(key)] = DesignerCase.from_dict(case_data)
+
+        with self._lock:
+            self.failure_pool = restored_pool
+            self.latest_epoch = latest_epoch
+            if self.latest_epoch is not None:
+                self._prune_failure_pool(self.latest_epoch)
+
 
 @dataclass
 class EvolutionSnapshot:

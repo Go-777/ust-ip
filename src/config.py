@@ -149,6 +149,7 @@ class AgenticMemoryConfig:
         self.skip_load_operation_bank = False  # Skip loading operation bank from checkpoint
         self.skip_load_snapshot_manager = False  # Skip loading snapshot manager from checkpoint
         self.memory_cache_suffix = ""  # Optional suffix for memory cache filenames
+        self.resume_new_wandb_run = False  # Resume training from checkpoint but start a fresh wandb run
 
     def update_from_args(self, args):
         """Update config from command line arguments"""
@@ -343,6 +344,8 @@ def get_agentic_memory_args():
     parser.add_argument('--wandb-run-name', type=str, default=None, help='Wandb run name')
     parser.add_argument('--wandb-key', type=str, default=None,
                         help='Wandb API key (optional; can also use WANDB_API_KEY env var)')
+    parser.add_argument('--resume-new-wandb-run', action='store_true',
+                        help='When resuming from a checkpoint, start a new wandb run instead of resuming the saved run ID')
 
     args = parser.parse_args()
     return args

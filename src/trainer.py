@@ -35,6 +35,8 @@ from rag_utils import get_embeddings, init_context_model, init_query_model
 from eval_utils import llm_judge
 from prompts.prompt_pool import LLM_JUDGE_GENERAL_PROMPT
 
+CHECKPOINT_VERSION = 4
+
 
 class BaseTrainer:
     """
@@ -114,6 +116,11 @@ class BaseTrainer:
         self.operation_bank.set_new_operation_names([])
         self.new_action_bias_active = False
         self.new_action_bias_step = 0
+        self.completed_outer_epoch = 0
+        self.resume_from_checkpoint = False
+        self.resume_wandb_run_id = None
+        self.resume_wandb_run_name = None
+        self.wandb_step_cursor = -1
 
         self.executor = Executor(args)
 
@@ -322,6 +329,147 @@ class BaseTrainer:
                 torch.cuda.set_rng_state_all(cuda_states)
             except Exception:
                 pass
+
+    def _coerce_completed_outer_epoch(self, checkpoint: Dict) -> int:
+        """Best-effort extraction of the last completed outer epoch from a checkpoint."""
+        value = checkpoint.get('completed_outer_epoch', checkpoint.get('epoch', 0))
+        ckpt_inner_epochs = self._get_checkpoint_inner_epochs(checkpoint)
+        if isinstance(value, str):
+            if value.lower() == 'final':
+                inferred_from_logs = self._infer_completed_outer_epoch_from_logs(
+                    checkpoint,
+                    ckpt_inner_epochs
+                )
+                if inferred_from_logs is not None:
+                    return inferred_from_logs
+                config_dict = checkpoint.get('config', {})
+                try:
+                    return max(0, int(config_dict.get('outer_epochs', self.config.outer_epochs)))
+                except Exception:
+                    return max(0, int(getattr(self.config, 'outer_epochs', 0) or 0))
+            try:
+                return max(0, int(value))
+            except Exception:
+                return 0
+        try:
+            return max(0, int(value))
+        except Exception:
+            return 0
+
+    def _get_checkpoint_inner_epochs(self, checkpoint: Dict) -> int:
+        config_dict = checkpoint.get('config', {})
+        try:
+            return max(0, int(config_dict.get('inner_epochs', self.config.inner_epochs) or 0))
+        except Exception:
+            return 0
+
+    def _infer_completed_outer_epoch_from_logs(self, checkpoint: Dict, inner_epochs: int) -> Optional[int]:
+        training_logs = checkpoint.get('training_logs', None)
+        if not isinstance(training_logs, list) or inner_epochs <= 0:
+            return None
+        return max(0, len(training_logs) // inner_epochs)
+
+    def _coerce_wandb_step_cursor(self, checkpoint: Dict) -> int:
+        value = checkpoint.get('wandb_step_cursor', None)
+        if value is not None:
+            try:
+                return int(value)
+            except Exception:
+                pass
+
+        inner_epochs = self._get_checkpoint_inner_epochs(checkpoint)
+        completed_outer_epoch = self._coerce_completed_outer_epoch(checkpoint)
+        if inner_epochs <= 0 or completed_outer_epoch <= 0:
+            return -1
+        return completed_outer_epoch * inner_epochs - 1
+
+    def _log_resume_parameter_differences(self, checkpoint: Dict):
+        """Warn when the current command/config differs from the checkpoint snapshot."""
+        ckpt_args = checkpoint.get('args', {})
+        ckpt_config = checkpoint.get('config', {})
+        if not isinstance(ckpt_args, dict):
+            ckpt_args = {}
+        if not isinstance(ckpt_config, dict):
+            ckpt_config = {}
+
+        try:
+            current_args = dict(vars(self.args))
+        except Exception:
+            current_args = {}
+        current_config = dict(vars(self.config))
+
+        sensitive_tokens = ('key', 'token', 'password', 'secret')
+        ignored_config_keys = {'state_dim', 'op_embedding_dim'}
+
+        def _is_sensitive(key: str) -> bool:
+            key_lower = str(key).lower()
+            return any(tok in key_lower for tok in sensitive_tokens)
+
+        def _collect_diffs(old_map: Dict, new_map: Dict, keys) -> List[str]:
+            diffs = []
+            for key in keys:
+                if _is_sensitive(key):
+                    continue
+                old_value = old_map.get(key, '<missing>')
+                new_value = new_map.get(key, '<missing>')
+                if old_value != new_value:
+                    diffs.append(f"{key}: checkpoint={old_value!r}, current={new_value!r}")
+            return diffs
+
+        arg_keys = sorted(set(ckpt_args.keys()) | set(current_args.keys()))
+        config_keys = sorted(
+            (set(ckpt_config.keys()) | set(current_config.keys()))
+            - set(current_args.keys())
+            - ignored_config_keys
+        )
+
+        arg_diffs = _collect_diffs(ckpt_args, current_args, arg_keys)
+        config_diffs = _collect_diffs(ckpt_config, current_config, config_keys)
+
+        if not arg_diffs and not config_diffs:
+            return
+
+        lines = [
+            "[Resume] Current command/config differs from the checkpoint snapshot; "
+            "current values will be used."
+        ]
+        if arg_diffs:
+            lines.append("Args differences:")
+            lines.extend(f"- {item}" for item in arg_diffs)
+        if config_diffs:
+            lines.append("Config differences:")
+            lines.extend(f"- {item}" for item in config_diffs)
+        self.log("\n".join(lines), level='warning')
+
+    def _get_designer_state(self) -> Optional[Dict]:
+        if self.designer is None:
+            return None
+        return {
+            'case_collector': self.designer.case_collector.to_dict()
+        }
+
+    def _restore_designer_state(self, checkpoint: Dict):
+        designer_state = checkpoint.get('designer_state', None)
+        if designer_state is None:
+            return
+        if self.designer is None:
+            self.log(
+                "Checkpoint contains designer_state but current run has designer disabled; "
+                "skipping designer state restore.",
+                level='warning'
+            )
+            return
+        if not isinstance(designer_state, dict):
+            return
+        case_collector_state = designer_state.get('case_collector', None)
+        if case_collector_state is not None:
+            self.designer.case_collector.load_dict(case_collector_state)
+
+    def _wandb_log(self, payload: Dict[str, Any], step: Optional[int] = None):
+        if step is None or step < 0:
+            wandb.log(payload)
+        else:
+            wandb.log(payload, step=step)
 
     def train_episode(self, conversation_data: Dict, memory_bank: MemoryBank,
                       sessions, ppo_buffer: PPOBuffer,
@@ -843,15 +991,25 @@ class BaseTrainer:
         - Computes advantages using GAE
         - Multiple PPO update epochs per batch
         """
+        start_outer_epoch = max(0, int(getattr(self, 'completed_outer_epoch', 0) or 0))
+        if start_outer_epoch >= self.config.outer_epochs:
+            self.log(
+                f"No remaining outer epochs to train: completed_outer_epoch={start_outer_epoch}, "
+                f"configured outer_epochs={self.config.outer_epochs}.",
+                level='warning'
+            )
+            return
+
         # Initialize wandb
         if mp.current_process().name == "MainProcess":
             wandb_key = getattr(self.args, 'wandb_key', None)
             if wandb_key:
                 wandb.login(key=wandb_key, relogin=True)
-        wandb.init(
-            project=getattr(self.args, 'wandb_project', 'memskill'),
-            name=getattr(self.args, 'wandb_run_name', None),
-            config={
+        resume_new_wandb_run = bool(getattr(self.args, 'resume_new_wandb_run', False))
+        wandb_init_kwargs = {
+            'project': getattr(self.args, 'wandb_project', 'memskill'),
+            'name': getattr(self.args, 'wandb_run_name', None) or self.resume_wandb_run_name,
+            'config': {
                 # PPO hyperparameters
                 'gamma': self.controller.gamma,
                 'gae_lambda': self.controller.gae_lambda,
@@ -877,7 +1035,20 @@ class BaseTrainer:
                 # Other
                 'dataset': self.args.dataset,
             }
-        )
+        }
+        if self.resume_wandb_run_id and not resume_new_wandb_run:
+            wandb_init_kwargs['id'] = self.resume_wandb_run_id
+            wandb_init_kwargs['resume'] = 'must'
+            self.log(f"Resuming wandb run: {self.resume_wandb_run_id}")
+        elif self.resume_from_checkpoint and resume_new_wandb_run:
+            self.log("Resuming training from checkpoint with a fresh wandb run.")
+        elif self.resume_from_checkpoint:
+            self.log("Checkpoint has no wandb_run_id; starting a new wandb run.", level='warning')
+        wandb.init(**wandb_init_kwargs)
+        run = getattr(wandb, 'run', None)
+        if run is not None:
+            self.resume_wandb_run_id = getattr(run, 'id', None)
+            self.resume_wandb_run_name = getattr(run, 'name', None)
 
         self.log("=" * 80)
         self.log("Starting Agentic Memory Training (PPO)")
@@ -885,13 +1056,20 @@ class BaseTrainer:
 
         self._prewarm_retriever_models()
 
-        for outer_epoch in range(self.config.outer_epochs):
+        if self.resume_from_checkpoint:
+            self.log(
+                f"Resuming training from outer epoch {start_outer_epoch + 1}/"
+                f"{self.config.outer_epochs}."
+            )
+
+        for outer_epoch in range(start_outer_epoch, self.config.outer_epochs):
             self.log(f"\n{'='*80}")
             self.log(f"Outer Epoch {outer_epoch + 1}/{self.config.outer_epochs}")
             self.log(f"{'='*80}")
 
             # Inner loop: train controller with fixed op bank
             inner_logs = []
+            outer_epoch_last_step = self.wandb_step_cursor if self.wandb_step_cursor is not None else -1
 
             for inner_epoch in range(self.config.inner_epochs):
                 # Create fresh PPO buffer for collecting episodes
@@ -976,7 +1154,7 @@ class BaseTrainer:
                         self.operation_bank.set_new_operation_names([])
 
                 # Wandb logging for PPO metrics
-                global_step = outer_epoch * self.config.inner_epochs + inner_epoch
+                global_step = self.wandb_step_cursor + 1
                 # Compute process reward stats
                 process_rewards = [s.get('process_reward', 0.0) for s in batch_steps]
                 match_rate = sum(1 for p in process_rewards if p == 0.0) / max(len(process_rewards), 1)
@@ -1058,7 +1236,9 @@ class BaseTrainer:
                 for op_name, count in op_counts.items():
                     avg_calls = count / num_episodes
                     wandb_log[f'operation/{op_name}_avg'] = avg_calls
-                wandb.log(wandb_log, step=global_step)
+                self._wandb_log(wandb_log, step=global_step)
+                self.wandb_step_cursor = global_step
+                outer_epoch_last_step = global_step
 
 
                 # Track reward for stage average calculation
@@ -1143,11 +1323,14 @@ class BaseTrainer:
                     self.log(f"{'='*80}")
 
                     # Log early stop to wandb
-                    wandb.log({
+                    self._wandb_log({
                         'evolution/early_stop': 1,
                         'evolution/total_evolves': self.snapshot_manager.total_evolves,
                         'evolution/best_reward': self.snapshot_manager.get_best_snapshot().avg_reward if self.snapshot_manager.get_best_snapshot() else 0.0,
-                    }, step=global_step)
+                    }, step=outer_epoch_last_step)
+
+                    self.training_logs.extend(inner_logs)
+                    self.completed_outer_epoch = outer_epoch + 1
 
                     # Break out of outer loop
                     break
@@ -1276,7 +1459,7 @@ class BaseTrainer:
                     changes = evolution_result.get('changes')
                     if isinstance(changes, list):
                         num_changes = len(changes)
-                wandb.log({
+                self._wandb_log({
                     'evolution/num_operations': len(self.operation_bank.operations),
                     'evolution/outer_epoch': outer_epoch,
                     'evolution/collected_cases': num_cases,
@@ -1293,29 +1476,34 @@ class BaseTrainer:
                     'evolution/num_snapshots': len(self.snapshot_manager.snapshots),
                     'evolution/failed_attempts_accumulated': len(self.snapshot_manager.failed_evolution_attempts),
                     'evolution/used_saved_cases': 1 if use_saved_cases else 0,
-                }, step=global_step)
+                }, step=outer_epoch_last_step)
+
+            # Store logs
+            self.training_logs.extend(inner_logs)
+            self.completed_outer_epoch = outer_epoch + 1
 
             # Save checkpoint
             if (outer_epoch + 1) % 1 == 0:
                 self.save_checkpoint(outer_epoch + 1)
 
-            # Store logs
-            self.training_logs.extend(inner_logs)
-
             # Log outer epoch summary to wandb
             outer_epoch_reward = np.mean([log['reward'] for log in inner_logs])
-            wandb.log({
+            self._wandb_log({
                 'epoch/outer_epoch': outer_epoch,
                 'epoch/avg_reward': outer_epoch_reward,
-            }, step=(outer_epoch + 1) * self.config.inner_epochs - 1)
+            }, step=outer_epoch_last_step)
 
         # Final summary
-        final_avg_reward = np.mean([log['reward'] for log in self.training_logs[-self.config.inner_epochs:]])
-        wandb.log({
+        self.resume_from_checkpoint = False
+        if len(self.training_logs) > 0:
+            final_avg_reward = np.mean([log['reward'] for log in self.training_logs[-self.config.inner_epochs:]])
+        else:
+            final_avg_reward = 0.0
+        self._wandb_log({
             'final/avg_reward': final_avg_reward,
             'final/total_steps': self.total_steps,
             'final/num_operations': len(self.operation_bank.operations),
-        })
+        }, step=self.wandb_step_cursor)
 
         # Finish wandb run
         wandb.finish()
@@ -1507,24 +1695,35 @@ class BaseTrainer:
         os.makedirs(self.args.save_dir, exist_ok=True)
 
         checkpoint = {
+            'checkpoint_version': CHECKPOINT_VERSION,
             'epoch': epoch,
+            'completed_outer_epoch': int(getattr(self, 'completed_outer_epoch', 0) or 0),
             'controller_state_dict': self.controller.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'operation_bank': self.operation_bank.to_dict(),
+            'operation_bank_new_operation_names': sorted(self.operation_bank.new_operation_names),
             'total_steps': self.total_steps,
+            'new_action_bias_active': bool(self.new_action_bias_active),
+            'new_action_bias_step': int(self.new_action_bias_step),
+            'wandb_step_cursor': self.wandb_step_cursor if self.wandb_step_cursor is not None else -1,
             # Reproducibility / resume
             'args': self._get_args_snapshot(),
             'config': vars(self.config),
             'rng_state': self._get_rng_state(),
             # Snapshot manager state
             'snapshot_manager': self.snapshot_manager.to_dict() if self.snapshot_manager else None,
+            'designer_state': self._get_designer_state(),
             'stage_rewards': self.stage_rewards,
+            'training_logs': self.training_logs,
         }
 
         run = getattr(wandb, 'run', None)
         if run is not None:
             checkpoint['wandb_run_id'] = getattr(run, 'id', None)
             checkpoint['wandb_run_name'] = getattr(run, 'name', None)
+        elif self.resume_wandb_run_id is not None:
+            checkpoint['wandb_run_id'] = self.resume_wandb_run_id
+            checkpoint['wandb_run_name'] = self.resume_wandb_run_name
 
         # Build filename with wandb run name if available
         run_name = getattr(self.args, 'wandb_run_name', None) or 'default'
@@ -1541,6 +1740,8 @@ class BaseTrainer:
         except TypeError:
             checkpoint = torch.load(path, map_location=self.device)
 
+        self._log_resume_parameter_differences(checkpoint)
+
         self.controller.load_state_dict(checkpoint['controller_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
@@ -1551,10 +1752,18 @@ class BaseTrainer:
                 encoder=self.op_encoder
             )
             self.operation_bank.skip_noop = getattr(self.config, 'skip_noop', False)
+            self.operation_bank.set_new_operation_names(
+                checkpoint.get('operation_bank_new_operation_names', [])
+            )
         else:
             self.log("Skipping operation bank loading (skip_load_operation_bank=True)")
+            self.operation_bank.set_new_operation_names([])
 
         self.total_steps = checkpoint.get('total_steps', 0)
+        self.completed_outer_epoch = self._coerce_completed_outer_epoch(checkpoint)
+        self.new_action_bias_active = bool(checkpoint.get('new_action_bias_active', False))
+        self.new_action_bias_step = int(checkpoint.get('new_action_bias_step', 0) or 0)
+        self.wandb_step_cursor = self._coerce_wandb_step_cursor(checkpoint)
 
         rng_state = checkpoint.get('rng_state', None)
         if rng_state is not None:
@@ -1572,6 +1781,23 @@ class BaseTrainer:
 
         # Restore stage rewards
         self.stage_rewards = checkpoint.get('stage_rewards', [])
+        self.training_logs = checkpoint.get('training_logs', []) or []
+        self._restore_designer_state(checkpoint)
+        self.resume_from_checkpoint = True
+        self.resume_wandb_run_id = checkpoint.get('wandb_run_id')
+        self.resume_wandb_run_name = checkpoint.get('wandb_run_name')
+        designer_case_count = (
+            len(self.designer.case_collector.get_all_cases())
+            if self.designer is not None else 0
+        )
+
+        self.log(
+            f"Checkpoint resume state: completed_outer_epoch={self.completed_outer_epoch}, "
+            f"new_action_bias_active={self.new_action_bias_active}, "
+            f"new_action_bias_step={self.new_action_bias_step}, "
+            f"wandb_step_cursor={self.wandb_step_cursor}, "
+            f"designer_cases={designer_case_count}"
+        )
         self.log(f"Loaded checkpoint from {path}")
 
 
