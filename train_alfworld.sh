@@ -13,6 +13,7 @@ python main.py \
     --dataset alfworld \
     --alfworld-offline-data "[YOUR_OFFLINE_DATA_PATH]" \
     --model "[YOUR_MODEL_NAME]" \
+    --designer-model "[YOUR_DESIGNER_MODEL_NAME]" \
     --api \
     --api-base "[YOUR_API_BASE]" \
     --api-key "YOUR_API_KEY_1" "YOUR_API_KEY_2" \
