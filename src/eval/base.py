@@ -93,6 +93,20 @@ class Evaluator(ABC):
         """
         pass
 
+    def sample_train_qa_list(self,
+                             qa_list: List[Dict],
+                             valid_qa: List[Tuple[int, Dict]],
+                             conversation_id: str = None,
+                             outer_epoch: int = 0,
+                             inner_epoch: int = 0) -> List[Tuple[int, Dict]]:
+        """
+        Optional training-only QA sampling hook.
+
+        This hook is used by trainer-side reward evaluation only and should not
+        affect eval-only / formal evaluation paths unless explicitly invoked.
+        """
+        return valid_qa
+
     def get_ground_truth(self, qa_item: Dict) -> str:
         """
         Extract ground truth answer from QA item.

@@ -783,6 +783,44 @@ class BaseTrainer:
         if len(valid_qa) == 0:
             return 0.0, 0.0
 
+        sampled_valid_qa = self.evaluator.sample_train_qa_list(
+            qa_list=qa_list,
+            valid_qa=valid_qa,
+            conversation_id=conversation_id,
+            outer_epoch=outer_epoch,
+            inner_epoch=inner_epoch
+        )
+        if len(sampled_valid_qa) == 0:
+            return 0.0, 0.0
+
+        if str(getattr(self.args, "dataset", "")).lower() == "locomo":
+            sampling_ratio = getattr(self.config, "locomo_train_query_sampling_ratio", 1.0)
+            try:
+                sampling_ratio = float(sampling_ratio)
+            except (TypeError, ValueError):
+                sampling_ratio = 1.0
+            if sampling_ratio < 1.0:
+                def _category_counts(items):
+                    counts = {}
+                    for _, qa_item in items:
+                        try:
+                            category = int(qa_item.get('category', 1))
+                        except (TypeError, ValueError):
+                            category = 1
+                        counts[category] = counts.get(category, 0) + 1
+                    return counts
+
+                self.log(
+                    "[LoCoMo Train Eval Sampling] "
+                    f"sample_id={conversation_id or 'unknown'} "
+                    f"ratio={sampling_ratio:.4f} "
+                    f"before={len(valid_qa)} after={len(sampled_valid_qa)} "
+                    f"before_categories={_category_counts(valid_qa)} "
+                    f"after_categories={_category_counts(sampled_valid_qa)}"
+                )
+
+        valid_qa = sampled_valid_qa
+
         # Collect questions for batch embedding
         valid_qa_indices = [idx for idx, _ in valid_qa]
         questions = [qa['question'] for _, qa in valid_qa]
@@ -1034,6 +1072,9 @@ class BaseTrainer:
                 'ema_alpha': getattr(self.config, 'ema_alpha', 0.1),
                 # Other
                 'dataset': self.args.dataset,
+                'locomo_train_query_sampling_ratio': getattr(
+                    self.config, 'locomo_train_query_sampling_ratio', 1.0
+                ),
             }
         }
         if self.resume_wandb_run_id and not resume_new_wandb_run:

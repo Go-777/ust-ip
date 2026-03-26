@@ -58,6 +58,8 @@
 
 ## 📰 News
 
+- 🚀 **[2026-03]**: `--locomo-train-query-sampling-ratio` is now available for training-time stratified test-query sampling on LoCoMo. It significantly reduces evaluation cost during training by sampling LoCoMo test queries by category, while leaving the full-evaluation protocol unchanged for `eval-only` and formal testing. For more details, please refer to [Commonly Used Configs](#️-commonly-used-configs).
+
 - 🛠️ **[2026-03]**: We have added support for interrupted training recovery. You can now resume training in the `train_*.sh` scripts by passing `--load-checkpoint`, which restores key training state such as the controller/optimizer, operation bank, designer state (for example, the rolling failure-case pool), and other resume-critical metadata. At the moment, recovery is supported only from checkpoints saved at **outer-epoch boundaries**. By default, resumed runs continue logging to the original W&B run; if you prefer a fresh run for logging, use `--resume-new-wandb-run` instead. For more details, please refer to [Commonly Used Configs](#️-commonly-used-configs).
 
 - 🚀 **[2026-03]**: We have improved the parallel memory extraction pipeline for evaluation and cache building, making MemSkill noticeably faster in large-scale runs. We also added clearer controls for concurrency with `--inference-workers` at the sample level and `--inference-session-workers` within each sample at the chunk/span level, which together can significantly accelerate memory extraction. For more details, please refer to [Commonly Used Configs](#️-commonly-used-configs).
@@ -270,11 +272,18 @@ These are the parameters most frequently used in the training/eval `.sh` scripts
 - `--api-key`: one or more API keys
 - `--disable-flash-attn`: Flash Attention is enabled by default; add this flag to disable it.
 
+> [!NOTE]
+>
+> To reduce the training cost introduced by open-ended skill evolution, one practical option is to use a smaller `--model` together with a larger `--designer-model`. In our experiments, we can still observe an increasing reward curve even when both `--model` and `--designer-model` are small. Generally speaking, however, a larger `--designer-model` makes skill evolution more effective while adding almost no extra training cost, because the designer contributes only a negligible number of LLM calls and token comsumption compared to the controller.
+>
+> Another option is to reduce the number of retrieved memories during training, namely `--mem-top-k`, since the dominant training cost usually comes from evaluating test queries. We also provide `--locomo-train-query-sampling-ratio`, a query-sampling option that can stratify test queries to reduce the evaluation burden during training while preserving stability and effectiveness. We hope these practical insights and experiences help the community follow, reproduce, and adapt MemSkill more easily.
+
 
 **Retrieval & memory**
 - `--retriever`: retriever type (`contriever`, `dpr`, `dragon`)
 - `--mem-top-k`: top‑K memories for training
 - `--mem-top-k-eval`: top‑K memories for evaluation
+- `--locomo-train-query-sampling-ratio`: LoCoMo-only training-time query sampling ratio for stratified test-query evaluation (`1.0` keeps full evaluation)
 - `--session-mode`: span granularity (`turn`, `turn-pair`, `full-session`, `fixed-length`)
 - `--chunk-size`, `--chunk-overlap`: fixed-length chunking size/overlap
 - `--inference-workers`: number of parallel workers for sample-level memory inference(`1` = serial)

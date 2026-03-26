@@ -3,6 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 
 # --disable-flash-attn \
 # --reward-metric llm_judge \
+# --locomo-train-query-sampling-ratio 0.2 \
 # --resume-new-wandb-run
 python main.py \
     --dataset locomo \

@@ -102,6 +102,7 @@ class AgenticMemoryConfig:
         self.inference_session_workers = 1  # workers for session-level inference within each sample
         self.hotpotqa_eval_file = "./data/eval_200.json"
         self.alfworld_eval_file = "./data/alfworld_expert_eval_in_distribution.json"
+        self.locomo_train_query_sampling_ratio = 1.0  # Training-only LoCoMo QA sampling ratio
 
         # HotpotQA specific settings (fixed-length chunking)
         self.chunk_size = 1024  # Target chunk size in tokens for fixed-length chunking
@@ -175,6 +176,8 @@ def get_agentic_memory_args():
     parser.add_argument('--alfworld-eval-file', type=str,
                         default='./data/alfworld_expert_eval_in_distribution.json',
                         help='ALFWorld eval data file (same format as offline train data)')
+    parser.add_argument('--locomo-train-query-sampling-ratio', type=float, default=1.0,
+                        help='Training-only LoCoMo QA sampling ratio; 1.0 keeps all non-category-5 queries')
     parser.add_argument('--out-file', type=str, default='./results/agentic_memory_results.json')
     parser.add_argument('--session-mode', type=str, default='turn-pair',
                         choices=['turn', 'turn-pair', 'full-session', 'fixed-length', 'paragraph'],
