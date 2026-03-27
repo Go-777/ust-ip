@@ -33,6 +33,8 @@
 
 **MemSkill** is a framework for learning and evolving **memory skills** for long-horizon agents. It replaces static, hand-designed memory operations with a data-driven loop where skills are **learned, refined, and reused** from task feedback, enabling more adaptive memory construction across settings.
 
+❗The skills evolved by **MemSkill** are **NOT** experiential/procedural memory/insights themselves. Rather, they are a form of **meta-memory** that focuses on **what kinds of memory to extract, how to remember and where to focus, and what to preserve or forget**. This is also why we call them **memory skills**: they capture the way or skill of remembering, rather than the remembered content itself.
+
 **Highlights**
 
 - **Skill-conditioned memory construction**: Compose a small set of relevant skills for each span and construct memories in one pass.
