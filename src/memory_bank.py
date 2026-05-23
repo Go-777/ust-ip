@@ -10,13 +10,29 @@ RETRIEVER_EMBEDDING_DIMS = {
     'contriever': 768,
     'dpr': 768,
     'dragon': 1024,
+    'Qwen/Qwen3-Embedding-0.6B': 1024,
     # Add more retrievers as needed
 }
 
 
+def canonicalize_retriever_name(retriever_name: str) -> str:
+    name = str(retriever_name or "").strip()
+    lowered = name.lower()
+    if lowered in {
+        "qwen/qwen3-embedding-0.6b",
+        "qwen_qwen3-embedding-0.6b",
+        "qwen3-embedding-0.6b",
+    }:
+        return "Qwen/Qwen3-Embedding-0.6B"
+    if lowered in {"contriever", "dpr", "dragon"}:
+        return lowered
+    return name
+
+
 def get_retriever_embedding_dim(retriever_name: str) -> int:
     """Get embedding dimension for a retriever, with fallback"""
-    return RETRIEVER_EMBEDDING_DIMS.get(retriever_name, 768)
+    canonical_name = canonicalize_retriever_name(retriever_name)
+    return RETRIEVER_EMBEDDING_DIMS.get(canonical_name, 768)
 
 
 class MemoryItem:

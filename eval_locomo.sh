@@ -20,7 +20,7 @@ python main.py \
     --api \
     --api-base "[YOUR_API_BASE]" \
     --api-key "YOUR_API_KEY_1" "YOUR_API_KEY_2" \
-    --retriever contriever \
+    --retriever qwen3-embedding-0.6b \
     --designer-freq 1 \
     --inner-epochs 100 \
     --outer-epochs 10 \

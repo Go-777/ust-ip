@@ -237,7 +237,19 @@ def get_agentic_memory_args():
                         help='Workers for session-level inference within each sample (1 = serial)')
 
     # Retriever args
-    parser.add_argument('--retriever', type=str, default='contriever', choices=['dpr', 'contriever', 'dragon'])
+    parser.add_argument(
+        '--retriever',
+        type=str,
+        default='contriever',
+        choices=[
+            'dpr',
+            'contriever',
+            'dragon',
+            'Qwen/Qwen3-Embedding-0.6B',
+            'qwen/qwen3-embedding-0.6b',
+            'qwen3-embedding-0.6b',
+        ],
+    )
     parser.add_argument('--mem-top-k', type=int, default=5, help='Top-k memories to retrieve during training')
     parser.add_argument('--mem-top-k-eval', type=int, default=None,
                         help='Top-k memories to retrieve during evaluation (defaults to --mem-top-k)')

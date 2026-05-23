@@ -31,7 +31,12 @@ from src.data_processing.alfworld import (
     chunk_trajectories_by_tokens,
 )
 from src.eval import get_evaluator
-from rag_utils import get_embeddings, init_context_model, init_query_model
+from rag_utils import (
+    get_embeddings,
+    init_context_model,
+    init_query_model,
+    set_retriever_flash_attn,
+)
 from eval_utils import llm_judge
 from prompts.prompt_pool import LLM_JUDGE_GENERAL_PROMPT
 
@@ -51,6 +56,7 @@ class BaseTrainer:
         self.args = args
         self.config = config
         self.device = args.device
+        set_retriever_flash_attn(bool(getattr(config, "use_flash_attn", True)))
 
         # Initialize encoders (each with its own state encoder backbone to reduce thread contention)
         encode_batch_size = getattr(config, 'encode_batch_size', 64)

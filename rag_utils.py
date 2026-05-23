@@ -4,6 +4,7 @@ import torch
 import threading
 import torch.nn.functional as F
 from tqdm import tqdm
+from sentence_transformers import SentenceTransformer
 
 
 
@@ -29,6 +30,62 @@ except ImportError:
 _MODEL_CACHE = {}
 _MODEL_CACHE_LOCK = threading.RLock()
 _MODEL_CACHE_LOADING = {}
+_QWEN_RETRIEVER_MODEL = "Qwen/Qwen3-Embedding-0.6B"
+_RETRIEVER_USE_FLASH_ATTN = True
+
+
+def _canonicalize_retriever_name(retriever: str) -> str:
+    name = str(retriever or "").strip()
+    lowered = name.lower()
+    if lowered in {
+        "qwen/qwen3-embedding-0.6b",
+        "qwen3-embedding-0.6b",
+    }:
+        return _QWEN_RETRIEVER_MODEL
+    return name
+
+
+def _is_qwen_embedding_retriever(retriever: str) -> bool:
+    return _canonicalize_retriever_name(retriever).lower() == _QWEN_RETRIEVER_MODEL.lower()
+
+
+def set_retriever_flash_attn(enabled: bool) -> None:
+    global _RETRIEVER_USE_FLASH_ATTN
+    enabled = bool(enabled)
+    with _MODEL_CACHE_LOCK:
+        if _RETRIEVER_USE_FLASH_ATTN == enabled:
+            return
+        _RETRIEVER_USE_FLASH_ATTN = enabled
+        qwen_key = _QWEN_RETRIEVER_MODEL.lower()
+        stale_keys = [key for key in _MODEL_CACHE.keys() if qwen_key in str(key).lower()]
+        for key in stale_keys:
+            del _MODEL_CACHE[key]
+
+
+def _load_sentence_transformer(model_name: str, device: str):
+    model_name_lower = model_name.lower()
+    if "qwen3-embedding" in model_name_lower:
+        if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+            torch_dtype = torch.bfloat16
+        else:
+            torch_dtype = torch.float16
+        model_kwargs = {"torch_dtype": torch_dtype}
+        if str(device).startswith("cuda") and _RETRIEVER_USE_FLASH_ATTN:
+            model_kwargs["attn_implementation"] = "flash_attention_2"
+            return SentenceTransformer(
+                model_name,
+                device=device,
+                model_kwargs=model_kwargs,
+                tokenizer_kwargs={"padding_side": "left"},
+            )
+        model_kwargs["device_map"] = "auto"
+        return SentenceTransformer(
+            model_name,
+            device=device,
+            model_kwargs=model_kwargs,
+            tokenizer_kwargs={"padding_side": "left"},
+        )
+    return SentenceTransformer(model_name, device=device)
 
 
 def _load_hf_model(model_cls, model_name: str, device: str):
@@ -90,6 +147,7 @@ def mean_pooling(token_embeddings: torch.Tensor, mask: torch.Tensor) -> torch.Te
 
 def init_context_model(retriever: str):
     """Initialize context encoder with global caching."""
+    retriever = _canonicalize_retriever_name(retriever)
     cache_key = f"{retriever}_context"
     while True:
         with _MODEL_CACHE_LOCK:
@@ -139,6 +197,9 @@ def init_context_model(retriever: str):
             from transformers import AutoTokenizer, AutoModel
             context_tokenizer = AutoTokenizer.from_pretrained('facebook/dragon-plus-context-encoder')
             context_model = _load_hf_model(AutoModel, 'facebook/dragon-plus-context-encoder', device)
+        elif _is_qwen_embedding_retriever(retriever):
+            context_tokenizer = None
+            context_model = _load_sentence_transformer(retriever, device)
         else:
             raise ValueError(f"Unknown retriever type: {retriever}")
     
@@ -158,6 +219,7 @@ def init_context_model(retriever: str):
 
 def init_query_model(retriever: str):
     """Initialize query encoder with global caching."""
+    retriever = _canonicalize_retriever_name(retriever)
     cache_key = f"{retriever}_query"
     while True:
         with _MODEL_CACHE_LOCK:
@@ -206,6 +268,9 @@ def init_query_model(retriever: str):
             from transformers import AutoTokenizer, AutoModel
             question_tokenizer = AutoTokenizer.from_pretrained('facebook/dragon-plus-query-encoder')
             question_model = _load_hf_model(AutoModel, 'facebook/dragon-plus-query-encoder', device)
+        elif _is_qwen_embedding_retriever(retriever):
+            question_tokenizer = None
+            question_model = _load_sentence_transformer(retriever, device)
         else:
             raise ValueError(f"Unknown retriever type: {retriever}")
     
@@ -227,6 +292,7 @@ def get_embeddings(retriever: str,
                    inputs: List[str],
                    mode: str = 'context',
                    batch_size: int = 256) -> torch.Tensor:
+    retriever = _canonicalize_retriever_name(retriever)
     if mode == 'context':
         tokenizer, encoder = init_context_model(retriever)
     else:
@@ -234,6 +300,14 @@ def get_embeddings(retriever: str,
 
     all_embeddings = []
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    if _is_qwen_embedding_retriever(retriever):
+        return encoder.encode(
+            inputs,
+            convert_to_numpy=True,
+            batch_size=batch_size,
+            normalize_embeddings=True,
+        )
 
     with torch.no_grad():
         for i in tqdm(range(0, len(inputs), batch_size), desc="GET EMBEDDINGS", leave=False):
