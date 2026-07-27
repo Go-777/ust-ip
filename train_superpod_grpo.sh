@@ -28,7 +28,7 @@
 # ============================================================
 
 # === 环境配置 ===
-source ~/.bashrc
+eval "$(conda shell.bash hook)"
 conda activate memskill
 
 export WANDB_MODE=offline
