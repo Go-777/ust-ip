@@ -34,9 +34,9 @@ export TOKENIZERS_PARALLELISM=false
 export HF_HUB_OFFLINE=0
 export CUDA_VISIBLE_DEVICES=0
 
-# 百炼API配置
-DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
-DASHSCOPE_API_KEY="REDACTED_API_KEY"
+# 百炼API配置 (通过环境变量传递，避免shell特殊字符问题)
+export DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export DASHSCOPE_API_KEY='REDACTED_API_KEY'
 
 # 项目目录
 cd ~/ust-ip
@@ -75,7 +75,6 @@ python train_grpo.py \
     --bad-cases-file "./data/bad_cases_mini.json" \
     --model qwen-plus \
     --api --api-base "${DASHSCOPE_API_BASE}" \
-    --api-key "${DASHSCOPE_API_KEY}" \
     --grpo-enabled \
     --grpo-group-size 2 \
     --grpo-max-iterations 1 \

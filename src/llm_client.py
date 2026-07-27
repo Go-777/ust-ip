@@ -386,10 +386,19 @@ def create_llm_client_from_args(args) -> LLMClient:
     Create LLMClient from command-line args.
     Maps args fields to role-based configs.
     """
-    # Get API keys from args
+    import os
+    # Get API keys from args, fallback to environment variable
     api_keys = getattr(args, "api_key", [])
     if isinstance(api_keys, str):
         api_keys = [api_keys]
+    # Filter out placeholder keys
+    if api_keys:
+        api_keys = [k for k in api_keys if k and k not in ("YOUR_API_KEY_1", "YOUR_API_KEY_2")]
+    # Fallback to environment variable
+    if not api_keys:
+        env_key = os.environ.get("DASHSCOPE_API_KEY") or os.environ.get("API_KEY")
+        if env_key:
+            api_keys = [env_key]
 
     # Base URL
     base_url = getattr(args, "api_base", DEFAULT_API_BASE_URL)
