@@ -38,7 +38,7 @@ DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
 DASHSCOPE_API_KEY="REDACTED_API_KEY"
 
 # 项目目录
-cd ~/MemSkill
+cd ~/ust-ip
 mkdir -p logs checkpoints/grpo_verify grpo_data/verify
 
 echo "============================================================"
