@@ -26,6 +26,7 @@ class AgenticMemoryConfig:
         self.skip_noop = False  # Skip noop in initial operations
 
         # Controller settings
+        self.controller_type = 'ppo'  # 'ppo' or 'llm'
         self.controller_hidden_dim = 256
         self.controller_lr = 1e-4
         # Encoder models for state and operation embedding
@@ -89,11 +90,37 @@ class AgenticMemoryConfig:
         self.stage_reward_use_moving_avg = False  # Use moving average over tail instead of raw mean
         self.stage_reward_window = 5  # Window size for moving average if enabled
 
+        # GRPO (Group Relative Policy Optimization) settings
+        self.grpo_enabled = False  # Enable GRPO training mode (replaces PPO Controller)
+        self.grpo_group_size = 8  # G: number of candidate samples per prompt
+        self.grpo_clip_epsilon = 0.2  # PPO-style clipping for GRPO
+        self.grpo_kl_coef = 0.05  # KL divergence penalty coefficient
+        self.grpo_lr = 5e-6  # Learning rate for GRPO updates
+        self.grpo_temperature = 0.7  # Sampling temperature for Stage2 candidates
+        self.grpo_max_designer_tokens = 4096  # Max tokens for designer generation
+        self.grpo_num_bad_cases = 100  # Number of bad cases per GRPO iteration
+        self.grpo_max_iterations = 50  # Maximum GRPO training iterations
+        self.grpo_early_stop_patience = 5  # Stop if no improvement for N iterations
+        self.grpo_case_chunk_size = 5  # Number of cases per analysis batch
+        self.grpo_export_dir = "./grpo_data"  # Directory for OpenRLHF export data
+
+        # LLM Client settings (new architecture: role-based model assignment)
+        # Using JD Cloud tokenPlan service
+        self.selector_model = "maas-token-latest"  # Skill Selector model
+        self.selector_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.executor_model = "maas-token-latest"  # Executor model
+        self.executor_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.judge_model = "maas-token-latest"  # QA Judge model
+        self.judge_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.designer_local_model = "maas-token-latest"  # Designer model
+        self.designer_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.dashscope_api_keys = []  # API keys for gateway
+
         # Executor settings
         self.max_new_tokens = 1024
         self.temperature = 0.0
         self.designer_model = None
-        self.llm_judge_model = "openai/gpt-oss-120b"
+        self.llm_judge_model = ""
 
         # Dataset settings
         self.dataset = "locomo"  # locomo, longmemeval, hotpotqa, or alfworld
@@ -228,8 +255,8 @@ def get_agentic_memory_args():
                                  "YOUR_API_KEY_2"])
     parser.add_argument('--temperature', type=float, default=0.0)
     parser.add_argument('--max-new-tokens', type=int, default=2048)
-    parser.add_argument('--llm-judge-model', type=str, default='openai/gpt-oss-120b',
-                        help='Model for LLM judge scoring')
+    parser.add_argument('--llm-judge-model', type=str, default='',
+                        help='Model for LLM judge scoring (defaults to --model if empty)')
     parser.add_argument('--batch-size', type=int, default=16, help='Episodes per PPO update')
     parser.add_argument('--inference-workers', type=int, default=1,
                         help='Workers for sample-level memory inference on text datasets (1 = serial)')
@@ -241,14 +268,7 @@ def get_agentic_memory_args():
         '--retriever',
         type=str,
         default='contriever',
-        choices=[
-            'dpr',
-            'contriever',
-            'dragon',
-            'Qwen/Qwen3-Embedding-0.6B',
-            'qwen/qwen3-embedding-0.6b',
-            'qwen3-embedding-0.6b',
-        ],
+        help='Retriever model name or local path. Built-in options: dpr, contriever, dragon, Qwen/Qwen3-Embedding-0.6B',
     )
     parser.add_argument('--mem-top-k', type=int, default=5, help='Top-k memories to retrieve during training')
     parser.add_argument('--mem-top-k-eval', type=int, default=None,
@@ -281,6 +301,11 @@ def get_agentic_memory_args():
     parser.add_argument('--reward-metric', type=str, default='f1',
                         choices=['f1', 'llm_judge'],
                         help='Episode reward metric: f1 or llm_judge')
+
+    # Controller type
+    parser.add_argument('--controller-type', type=str, default='ppo',
+                        choices=['ppo', 'llm'],
+                        help='Controller type: ppo (trainable neural network) or llm (LLM-based, no training)')
 
     # PPO args
     parser.add_argument('--gae-lambda', type=float, default=0.95, help='GAE lambda for advantage estimation')
@@ -343,6 +368,54 @@ def get_agentic_memory_args():
     parser.add_argument('--save-dir', type=str, default='./checkpoints')
     parser.add_argument('--log-dir', type=str, default='./logs')
     parser.add_argument('--round', type=int, default=10, help='Number of retry rounds for LLM API calls')
+
+    # GRPO args
+    parser.add_argument('--grpo-enabled', action='store_true',
+                        help='Enable GRPO training mode (replaces PPO Controller)')
+    parser.add_argument('--grpo-group-size', type=int, default=8,
+                        help='Number of candidate samples per prompt (G)')
+    parser.add_argument('--grpo-clip-epsilon', type=float, default=0.2,
+                        help='GRPO clipping parameter')
+    parser.add_argument('--grpo-kl-coef', type=float, default=0.05,
+                        help='KL divergence penalty coefficient')
+    parser.add_argument('--grpo-lr', type=float, default=5e-6,
+                        help='Learning rate for GRPO updates')
+    parser.add_argument('--grpo-temperature', type=float, default=0.7,
+                        help='Sampling temperature for GRPO Stage2 candidates')
+    parser.add_argument('--grpo-max-designer-tokens', type=int, default=4096,
+                        help='Max generation tokens for designer')
+    parser.add_argument('--grpo-num-bad-cases', type=int, default=100,
+                        help='Number of bad cases per GRPO iteration')
+    parser.add_argument('--grpo-max-iterations', type=int, default=50,
+                        help='Maximum GRPO training iterations')
+    parser.add_argument('--grpo-early-stop-patience', type=int, default=5,
+                        help='Stop if no improvement for N iterations')
+    parser.add_argument('--grpo-case-chunk-size', type=int, default=5,
+                        help='Number of cases per analysis batch')
+    parser.add_argument('--grpo-export-dir', type=str, default='./grpo_data',
+                        help='Directory for OpenRLHF export data')
+    parser.add_argument('--bad-cases-file', type=str, default=None,
+                        help='Path to bad cases JSON/JSONL file for GRPO training')
+
+    # LLM Client args (new architecture)
+    parser.add_argument('--selector-model', type=str, default='maas-token-latest',
+                        help='Model name for Skill Selector')
+    parser.add_argument('--selector-api-base', type=str,
+                        default='https://modelservice.jdcloud.com/tokenPlan/openai/v1')
+    parser.add_argument('--executor-model', type=str, default='maas-token-latest',
+                        help='Model name for Executor')
+    parser.add_argument('--executor-api-base', type=str,
+                        default='https://modelservice.jdcloud.com/tokenPlan/openai/v1')
+    parser.add_argument('--judge-model', type=str, default='maas-token-latest',
+                        help='Model name for QA Judge')
+    parser.add_argument('--judge-api-base', type=str,
+                        default='https://modelservice.jdcloud.com/tokenPlan/openai/v1')
+    parser.add_argument('--designer-local-model', type=str, default='maas-token-latest',
+                        help='Model for Designer')
+    parser.add_argument('--designer-api-base', type=str, default='https://modelservice.jdcloud.com/tokenPlan/openai/v1',
+                        help='API base URL for Designer model')
+    parser.add_argument('--dashscope-api-keys', type=str, nargs='+', default=[],
+                        help='API keys for gateway')
 
     # Evaluation
     parser.add_argument('--eval-only', action='store_true')

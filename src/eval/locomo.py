@@ -29,9 +29,9 @@ class LoCoMoEvaluator(Evaluator):
     SKIP_CATEGORIES = {5}  # Skip adversarial questions
 
     def prepare_eval_args(self) -> Any:
-        """Override default eval args to allow longer generations for HotpotQA."""
+        """Override default eval args for LoCoMo evaluation."""
         eval_args = super().prepare_eval_args()
-        eval_args.max_new_tokens = 32
+        # Don't override max_new_tokens here - base class sets 512 for thinking models
         return eval_args
 
     def filter_qa_list(self, qa_list: List[Dict]) -> List[Tuple[int, Dict]]:

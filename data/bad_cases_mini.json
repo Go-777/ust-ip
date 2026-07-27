@@ -1,0 +1,53 @@
+[
+  {
+    "session_text": "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey! I've been great. I went to a new yoga class last Tuesday.\nCaroline: Nice! I've been looking into pottery classes myself. I signed up for one starting next Monday.\nMelanie: That sounds fun! I also started painting sunrises in 2022, remember?\nCaroline: Yes! Your sunrise paintings are beautiful.",
+    "question": "When did Melanie start painting sunrises?",
+    "ground_truth": "2022",
+    "prediction": "last year",
+    "memory_bank_snapshot": {
+      "memories": [
+        {"content": "Melanie went to yoga class", "embedding": null},
+        {"content": "Caroline signed up for pottery", "embedding": null}
+      ]
+    },
+    "retrieved_memories": ["Melanie went to yoga class", "Caroline signed up for pottery"]
+  },
+  {
+    "session_text": "Alex: I just got promoted to senior engineer at Google last week!\nSam: Congrats! That's amazing. How long have you been there?\nAlex: About 3 years now. Started in 2021 as a junior.\nSam: I remember you were at Microsoft before that.\nAlex: Yeah, I was there for 2 years doing cloud infrastructure.",
+    "question": "Where did Alex work before Google?",
+    "ground_truth": "Microsoft",
+    "prediction": "Amazon",
+    "memory_bank_snapshot": {
+      "memories": [
+        {"content": "Alex got promoted at Google", "embedding": null},
+        {"content": "Alex started at Google in 2021", "embedding": null}
+      ]
+    },
+    "retrieved_memories": ["Alex got promoted at Google", "Alex started at Google in 2021"]
+  },
+  {
+    "session_text": "Lisa: Did you hear about the new coffee shop on Main Street?\nTom: Yeah! Bean & Leaf, right? They opened last Friday.\nLisa: I went there yesterday. Their oat milk latte is amazing.\nTom: I prefer their cold brew. It's $4.50 for a large.\nLisa: That's reasonable. The atmosphere is really cozy too.",
+    "question": "What is the name of the new coffee shop?",
+    "ground_truth": "Bean & Leaf",
+    "prediction": "The Coffee House",
+    "memory_bank_snapshot": {
+      "memories": [
+        {"content": "New coffee shop opened on Main Street", "embedding": null}
+      ]
+    },
+    "retrieved_memories": ["New coffee shop opened on Main Street"]
+  },
+  {
+    "session_text": "Jordan: I'm training for the Boston Marathon in April.\nMike: Wow, that's impressive! How's your training going?\nJordan: I'm doing 40 miles per week now. Goal is to finish under 3 hours.\nMike: What's your current best time?\nJordan: My PR is 3:15 from the Chicago Marathon last October.",
+    "question": "What is Jordan's marathon personal record?",
+    "ground_truth": "3:15",
+    "prediction": "3 hours",
+    "memory_bank_snapshot": {
+      "memories": [
+        {"content": "Jordan is training for Boston Marathon", "embedding": null},
+        {"content": "Jordan runs 40 miles per week", "embedding": null}
+      ]
+    },
+    "retrieved_memories": ["Jordan is training for Boston Marathon", "Jordan runs 40 miles per week"]
+  }
+]

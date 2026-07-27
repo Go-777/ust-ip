@@ -21,6 +21,8 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.controller import PPOController, StateEncoder, OpEncoder, PPOBuffer
+from src.llm_controller import LLMController
+from src.llm_client import LLMClient, create_llm_client_from_args
 from src.memory_bank import MemoryBank
 from src.operation_bank import OperationBank
 from src.executor import Executor
@@ -97,29 +99,43 @@ class BaseTrainer:
         config.state_dim = state_dim
         config.op_embedding_dim = op_dim
 
-        # PPO Controller
-        self.controller = PPOController(
-            state_dim=state_dim,
-            op_dim=op_dim,
-            hidden_dim=config.controller_hidden_dim,
-            device=self.device,
-            gamma=getattr(config, 'gamma', 0.99),
-            gae_lambda=getattr(config, 'gae_lambda', 0.95),
-            clip_epsilon=getattr(config, 'clip_epsilon', 0.2),
-            entropy_coef=getattr(config, 'entropy_coef', 0.01),
-            value_coef=getattr(config, 'value_coef', 0.5),
-            vf_clip=getattr(config, 'vf_clip', 0.0),
-            new_action_p_min=getattr(config, 'new_action_p_min', 0.0),
-            new_action_delta_max=getattr(config, 'new_action_delta_max', 0.0),
-            action_top_k=getattr(config, 'action_top_k', 1)
-        )
-
+        # Operation Bank (must be created before controller for LLM mode)
         self.operation_bank = OperationBank(
             encoder=self.op_encoder,
             max_ops=getattr(config, 'max_ops', 20),
             skip_noop=getattr(config, 'skip_noop', False)
         )
         self.operation_bank.set_new_operation_names([])
+
+        # Controller: PPO (neural network) or LLM (large language model)
+        self.controller_type = getattr(args, 'controller_type', 'ppo')
+        if self.controller_type == 'llm':
+            # LLM-based controller — no training needed
+            llm_client = create_llm_client_from_args(args)
+            self.controller = LLMController(
+          llm_client=llm_client,
+                operation_bank=self.operation_bank,
+                action_top_k=getattr(config, 'action_top_k', 1),
+                role="selector",
+            )
+        else:
+            # Original PPO Controller
+            self.controller = PPOController(
+                state_dim=state_dim,
+                op_dim=op_dim,
+            hidden_dim=config.controller_hidden_dim,
+                device=self.device,
+                gamma=getattr(config, 'gamma', 0.99),
+                gae_lambda=getattr(config, 'gae_lambda', 0.95),
+                clip_epsilon=getattr(config, 'clip_epsilon', 0.2),
+                entropy_coef=getattr(config, 'entropy_coef', 0.01),
+                value_coef=getattr(config, 'value_coef', 0.5),
+                vf_clip=getattr(config, 'vf_clip', 0.0),
+                new_action_p_min=getattr(config, 'new_action_p_min', 0.0),
+                new_action_delta_max=getattr(config, 'new_action_delta_max', 0.0),
+             action_top_k=getattr(config, 'action_top_k', 1)
+            )
+
         self.new_action_bias_active = False
         self.new_action_bias_step = 0
         self.completed_outer_epoch = 0
@@ -149,8 +165,11 @@ class BaseTrainer:
         else:
             self.designer = None
 
-        # Optimizer
-        self.optimizer = optim.Adam(self.controller.parameters(), lr=config.controller_lr)
+        # Optimizer (only needed for PPO controller)
+        if self.controller_type == 'ppo':
+            self.optimizer = optim.Adam(self.controller.parameters(), lr=config.controller_lr)
+        else:
+            self.optimizer = None
 
         # PPO parameters
         self.ppo_epochs = getattr(config, 'ppo_epochs', 4)
@@ -620,6 +639,10 @@ class BaseTrainer:
         state_tensor = torch.tensor(state_embedding, dtype=torch.float32).to(self.device)
         op_tensor = torch.tensor(op_embeddings, dtype=torch.float32).to(self.device)
 
+        # Set text context for LLM controller (no-op if using PPO controller)
+        if hasattr(self.controller, 'set_context'):
+            self.controller.set_context(session_text, retrieved_memories)
+
         with torch.no_grad():
             action_idx, log_prob, value = self.controller(
                 state_tensor, op_tensor, deterministic=False, new_op_mask=new_op_mask
@@ -924,6 +947,18 @@ class BaseTrainer:
         - Compute returns and advantages using GAE
         - Multiple epochs of PPO updates with shuffled minibatches
         """
+        # Skip PPO update if using LLM controller (no trainable params)
+        if self.controller_type == 'llm':
+            return {
+                'policy_loss': 0.0,
+                'value_loss': 0.0,
+                'entropy': 0.0,
+                'topk_entropy': 0.0,
+                'topk_mass': 0.0,
+                'topk_bin_entropy': 0.0,
+                'skipped': True,
+            }
+
         if len(ppo_buffer) == 0:
             return {
                 'policy_loss': 0.0,
@@ -1054,13 +1089,13 @@ class BaseTrainer:
             'project': getattr(self.args, 'wandb_project', 'memskill'),
             'name': getattr(self.args, 'wandb_run_name', None) or self.resume_wandb_run_name,
             'config': {
-                # PPO hyperparameters
-                'gamma': self.controller.gamma,
-                'gae_lambda': self.controller.gae_lambda,
-                'clip_epsilon': self.controller.clip_epsilon,
-                'vf_clip': getattr(self.controller, 'vf_clip', 0.0),
-                'entropy_coef': self.controller.entropy_coef,
-                'value_coef': self.controller.value_coef,
+                # PPO hyperparameters (safe for LLMController which lacks these)
+                'gamma': getattr(self.controller, 'gamma', None),
+                'gae_lambda': getattr(self.controller, 'gae_lambda', None),
+                'clip_epsilon': getattr(self.controller, 'clip_epsilon', None),
+                'vf_clip': getattr(self.controller, 'vf_clip', None),
+                'entropy_coef': getattr(self.controller, 'entropy_coef', None),
+                'value_coef': getattr(self.controller, 'value_coef', None),
                 'ppo_epochs': self.ppo_epochs,
                 'minibatch_size': self.minibatch_size,
                 'target_kl': self.target_kl,
@@ -1746,7 +1781,7 @@ class BaseTrainer:
             'epoch': epoch,
             'completed_outer_epoch': int(getattr(self, 'completed_outer_epoch', 0) or 0),
             'controller_state_dict': self.controller.state_dict(),
-            'optimizer_state_dict': self.optimizer.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict() if self.optimizer else {},
             'operation_bank': self.operation_bank.to_dict(),
             'operation_bank_new_operation_names': sorted(self.operation_bank.new_operation_names),
             'total_steps': self.total_steps,
@@ -1790,7 +1825,8 @@ class BaseTrainer:
         self._log_resume_parameter_differences(checkpoint)
 
         self.controller.load_state_dict(checkpoint['controller_state_dict'])
-        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        if self.optimizer and checkpoint.get('optimizer_state_dict'):
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
         # Load operation bank (controlled by config)
         if not getattr(self.config, 'skip_load_operation_bank', False):

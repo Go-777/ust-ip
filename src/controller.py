@@ -701,7 +701,7 @@ class BaseTextEncoder:
                 else:
                     torch_dtype = torch.float16
                 model_kwargs = {"torch_dtype": torch_dtype}
-                if self.use_flash_attn:
+                if self.use_flash_attn and str(device).startswith("cuda"):
                     model_kwargs["attn_implementation"] = "flash_attention_2"
                 tokenizer_kwargs = {"padding_side": "left"}
                 if str(device).startswith("cuda"):

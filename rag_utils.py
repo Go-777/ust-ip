@@ -46,7 +46,8 @@ def _canonicalize_retriever_name(retriever: str) -> str:
 
 
 def _is_qwen_embedding_retriever(retriever: str) -> bool:
-    return _canonicalize_retriever_name(retriever).lower() == _QWEN_RETRIEVER_MODEL.lower()
+    canonical = _canonicalize_retriever_name(retriever).lower()
+    return canonical == _QWEN_RETRIEVER_MODEL.lower() or "qwen3-embedding" in canonical
 
 
 def set_retriever_flash_attn(enabled: bool) -> None:

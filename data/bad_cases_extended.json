@@ -1,0 +1,342 @@
+[
+  {
+    "session_text": "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm swamped with the kids & work. What's up with you? Anything new?\nCaroline: I went to a LGBTQ support group yesterday and it was so powerful.\nMelanie: Wow, that's cool, Caroline! What happened that was so awesome? Did you hear any inspiring stories?\nCaroline: Hey Melanie! Just wanted to say hi!\nMelanie: Hey Caroline! Good to talk to you again. What's up? Anything new since last time?\nCaroline: Hey Me",
+    "question": "When did Caroline go to the LGBTQ support group?",
+    "ground_truth": "7 May 2023",
+    "prediction": "last year",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm s",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm s"
+    ]
+  },
+  {
+    "session_text": "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm swamped with the kids & work. What's up with you? Anything new?\nCaroline: I went to a LGBTQ support group yesterday and it was so powerful.\nMelanie: Wow, that's cool, Caroline! What happened that was so awesome? Did you hear any inspiring stories?\nCaroline: Hey Melanie! Just wanted to say hi!\nMelanie: Hey Caroline! Good to talk to you again. What's up? Anything new since last time?\nCaroline: Hey Me",
+    "question": "When did Melanie paint a sunrise?",
+    "ground_truth": "2022",
+    "prediction": "I dont know",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm s",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm s"
+    ]
+  },
+  {
+    "session_text": "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm swamped with the kids & work. What's up with you? Anything new?\nCaroline: I went to a LGBTQ support group yesterday and it was so powerful.\nMelanie: Wow, that's cool, Caroline! What happened that was so awesome? Did you hear any inspiring stories?\nCaroline: Hey Melanie! Just wanted to say hi!\nMelanie: Hey Caroline! Good to talk to you again. What's up? Anything new since last time?\nCaroline: Hey Me",
+    "question": "What fields would Caroline be likely to pursue in her educaton?",
+    "ground_truth": "Psychology, counseling certification",
+    "prediction": "somewhere",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm s",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Caroline: Hey Mel! Good to see you! How have you been?\nMelanie: Hey Caroline! Good to see you! I'm s"
+    ]
+  },
+  {
+    "session_text": "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my job as a banker yesterday, so I'm gonna take a shot at starting my own business.\nGina: Sorry about your job Jon, but starting your own business sounds awesome! Unfortunately, I also lost my job at Door Dash this month. What business are you thinking of?\nJon: Sorry to hear that! I'm starting a dance studio 'cause I'm passionate about dancing and it'd be great to share it with others.\n",
+    "question": "When Jon has lost his job as a banker?",
+    "ground_truth": "19 January, 2023",
+    "prediction": "unknown",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my"
+    ]
+  },
+  {
+    "session_text": "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my job as a banker yesterday, so I'm gonna take a shot at starting my own business.\nGina: Sorry about your job Jon, but starting your own business sounds awesome! Unfortunately, I also lost my job at Door Dash this month. What business are you thinking of?\nJon: Sorry to hear that! I'm starting a dance studio 'cause I'm passionate about dancing and it'd be great to share it with others.\n",
+    "question": "When Gina has lost her job at Door Dash?",
+    "ground_truth": "January, 2023",
+    "prediction": "unknown",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my"
+    ]
+  },
+  {
+    "session_text": "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my job as a banker yesterday, so I'm gonna take a shot at starting my own business.\nGina: Sorry about your job Jon, but starting your own business sounds awesome! Unfortunately, I also lost my job at Door Dash this month. What business are you thinking of?\nJon: Sorry to hear that! I'm starting a dance studio 'cause I'm passionate about dancing and it'd be great to share it with others.\n",
+    "question": "How do Jon and Gina both like to destress?",
+    "ground_truth": "by dancing",
+    "prediction": "not mentioned",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Gina: Hey Jon! Good to see you. What's up? Anything new?\nJon: Hey Gina! Good to see you too. Lost my"
+    ]
+  },
+  {
+    "session_text": "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a family road trip yesterday, it was fun! Anything exciting happening for you?\nMaria: Been busy volunteering at the homeless shelter and keeping fit. Just started doing aerial yoga, it's great. Have you tried any other cool workout classes?\nJohn: Woah, Maria, that sounds cool! I'm doing kickboxing and it's giving me so much energy.\n",
+    "question": "Who did Maria have dinner with on May 3, 2023?",
+    "ground_truth": "her mother",
+    "prediction": "last year",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a"
+    ]
+  },
+  {
+    "session_text": "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a family road trip yesterday, it was fun! Anything exciting happening for you?\nMaria: Been busy volunteering at the homeless shelter and keeping fit. Just started doing aerial yoga, it's great. Have you tried any other cool workout classes?\nJohn: Woah, Maria, that sounds cool! I'm doing kickboxing and it's giving me so much energy.\n",
+    "question": "When did Maria donate her car?",
+    "ground_truth": "21 December 2022",
+    "prediction": "last year",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a"
+    ]
+  },
+  {
+    "session_text": "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a family road trip yesterday, it was fun! Anything exciting happening for you?\nMaria: Been busy volunteering at the homeless shelter and keeping fit. Just started doing aerial yoga, it's great. Have you tried any other cool workout classes?\nJohn: Woah, Maria, that sounds cool! I'm doing kickboxing and it's giving me so much energy.\n",
+    "question": "What martial arts has John done?",
+    "ground_truth": "Kickboxing, Taekwondo",
+    "prediction": "not sure",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Maria: Hey John! Long time no see! What's up?\nJohn: Hey Maria! Good to see you. Just got back from a"
+    ]
+  },
+  {
+    "session_text": "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no see! I've been working on a project lately - it's been pretty cool. What about you - any fun projects or hobbies?\nNate: Hey Joanna! That's cool! I won my first video game tournament last week - so exciting!\nJoanna: Wow Nate! Congrats on winning! Tell me more - what game was it?\nJoanna: Hey Nate, how's it going? I took your reccomendation and watched \"The Lord of the Rings\" Trilogy last night! It ",
+    "question": "Is it likely that Nate has friends besides Joanna?",
+    "ground_truth": "Yesteammates on hisvideo game team.",
+    "prediction": "I dont know",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no"
+    ]
+  },
+  {
+    "session_text": "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no see! I've been working on a project lately - it's been pretty cool. What about you - any fun projects or hobbies?\nNate: Hey Joanna! That's cool! I won my first video game tournament last week - so exciting!\nJoanna: Wow Nate! Congrats on winning! Tell me more - what game was it?\nJoanna: Hey Nate, how's it going? I took your reccomendation and watched \"The Lord of the Rings\" Trilogy last night! It ",
+    "question": "What kind of interests do Joanna and Nate share?",
+    "ground_truth": "Watching movies, making desserts",
+    "prediction": "I dont know",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no"
+    ]
+  },
+  {
+    "session_text": "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no see! I've been working on a project lately - it's been pretty cool. What about you - any fun projects or hobbies?\nNate: Hey Joanna! That's cool! I won my first video game tournament last week - so exciting!\nJoanna: Wow Nate! Congrats on winning! Tell me more - what game was it?\nJoanna: Hey Nate, how's it going? I took your reccomendation and watched \"The Lord of the Rings\" Trilogy last night! It ",
+    "question": "When did Joanna first watch \"Eternal Sunshine of the Spotless Mind?",
+    "ground_truth": "2019",
+    "prediction": "last year",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Nate: Hey Joanna! Long time no see! What's up? Anything fun going on?\nJoanna: Hey Nate! Long time no"
+    ]
+  },
+  {
+    "session_text": "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you. Been discussing collaborations for a Harry Potter fan project I am working on - super excited! Anything interesting happening for you?\nJohn: That's great! I just signed with a new team - excited for the season!\nTim: Woohoo! Congrats on the new team. Which team did you sign with?\nTim: Hey John, it's been a few days! I got a no for a summer job I wanted which wasn't great but I'm staying positive.",
+    "question": "what are John's goals with regards to his basketball career?",
+    "ground_truth": "improve shooting percentage, win a championship",
+    "prediction": "unknown",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you"
+    ]
+  },
+  {
+    "session_text": "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you. Been discussing collaborations for a Harry Potter fan project I am working on - super excited! Anything interesting happening for you?\nJohn: That's great! I just signed with a new team - excited for the season!\nTim: Woohoo! Congrats on the new team. Which team did you sign with?\nTim: Hey John, it's been a few days! I got a no for a summer job I wanted which wasn't great but I'm staying positive.",
+    "question": "What are John's goals for his career that are not related to his basketball skills?",
+    "ground_truth": "get endorsements, build his brand, do charity work",
+    "prediction": "unknown",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you"
+    ]
+  },
+  {
+    "session_text": "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you. Been discussing collaborations for a Harry Potter fan project I am working on - super excited! Anything interesting happening for you?\nJohn: That's great! I just signed with a new team - excited for the season!\nTim: Woohoo! Congrats on the new team. Which team did you sign with?\nTim: Hey John, it's been a few days! I got a no for a summer job I wanted which wasn't great but I'm staying positive.",
+    "question": "What items does John collect?",
+    "ground_truth": "sneakers, fantasy movie DVDs, jerseys",
+    "prediction": "I dont know",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "John: Hey Tim, nice to meet you! What's up? Anything new happening?\nTim: Hey John! Great to meet you"
+    ]
+  },
+  {
+    "session_text": "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I started a new job as a Financial Analyst last week - it's been quite a change from my previous job. How about you? Anything interesting happening?\nAudrey: Congrats on the new job! So I got these new collars and tags for my dogs - so cute!\nAndrew: Thanks! That sounds cute. Can I see a picture?\nAudrey: Hey! It's been a while. I'm taking a dog training course and it's challenging but rewarding. My dog",
+    "question": "Which year did Audrey adopt the first three of her dogs?",
+    "ground_truth": "2020",
+    "prediction": "unknown",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I s",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I s"
+    ]
+  },
+  {
+    "session_text": "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I started a new job as a Financial Analyst last week - it's been quite a change from my previous job. How about you? Anything interesting happening?\nAudrey: Congrats on the new job! So I got these new collars and tags for my dogs - so cute!\nAndrew: Thanks! That sounds cute. Can I see a picture?\nAudrey: Hey! It's been a while. I'm taking a dog training course and it's challenging but rewarding. My dog",
+    "question": "When did Andrew start his new job as a financial analyst?",
+    "ground_truth": "The week before March 27, 2023",
+    "prediction": "not sure",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I s",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I s"
+    ]
+  },
+  {
+    "session_text": "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I started a new job as a Financial Analyst last week - it's been quite a change from my previous job. How about you? Anything interesting happening?\nAudrey: Congrats on the new job! So I got these new collars and tags for my dogs - so cute!\nAndrew: Thanks! That sounds cute. Can I see a picture?\nAudrey: Hey! It's been a while. I'm taking a dog training course and it's challenging but rewarding. My dog",
+    "question": "What kind of indoor activities has Andrew pursued with his girlfriend?",
+    "ground_truth": "boardgames, volunteering at pet shelter, wine tasting, growing flowers",
+    "prediction": "unknown",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I s",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "Audrey: Hey Andrew! Good to see ya! What's been up since we last talked?\nAndrew: Hey Audrey! So, I s"
+    ]
+  },
+  {
+    "session_text": "John: Hey! Glad to finally talk to you. I want to ask you, what motivates you?\nJames: Hey John! Video games give me tons of joy and excitement, so they keep me motivated!\nJohn: Cool, James! I'm a big video game fan too. They help me relax after a long day. What game are you currently enjoying the most?\nJames: I'm totally into The Witcher 3 right now. The story and atmosphere are amazing. Have you tried it yet?\n",
+    "question": "What are John's suspected health problems?",
+    "ground_truth": "Obesity",
+    "prediction": "recently",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "John: Hey! Glad to finally talk to you. I want to ask you, what motivates you?\nJames: Hey John! Vide",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "John: Hey! Glad to finally talk to you. I want to ask you, what motivates you?\nJames: Hey John! Vide"
+    ]
+  },
+  {
+    "session_text": "John: Hey! Glad to finally talk to you. I want to ask you, what motivates you?\nJames: Hey John! Video games give me tons of joy and excitement, so they keep me motivated!\nJohn: Cool, James! I'm a big video game fan too. They help me relax after a long day. What game are you currently enjoying the most?\nJames: I'm totally into The Witcher 3 right now. The story and atmosphere are amazing. Have you tried it yet?\n",
+    "question": "Which recreational activity was James pursuing on March 16, 2022?",
+    "ground_truth": "bowling",
+    "prediction": "somewhere",
+    "memory_bank_snapshot": {
+      "memories": [
+        {
+          "content": "John: Hey! Glad to finally talk to you. I want to ask you, what motivates you?\nJames: Hey John! Vide",
+          "embedding": null
+        }
+      ]
+    },
+    "retrieved_memories": [
+      "John: Hey! Glad to finally talk to you. I want to ask you, what motivates you?\nJames: Hey John! Vide"
+    ]
+  }
+]

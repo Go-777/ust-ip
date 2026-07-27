@@ -1,5 +1,6 @@
 import time
 import openai
+import httpx
 import threading
 import tiktoken
 from transformers import AutoTokenizer
@@ -73,11 +74,19 @@ def _get_client_round_robin(
 
         client = _client_cache.get(key)
         if client is None:
+            # When using SSH tunnel (localhost), inject Host header for routing
+            http_headers = {}
+            if "localhost" in base_url or "127.0.0.1" in base_url:
+                http_headers["Host"] = "modelservice.jdcloud.com"
             client = openai.OpenAI(
                 base_url=base_url,
                 api_key=key,
                 max_retries=max_retries,
-                timeout=timeout
+                timeout=timeout,
+                http_client=httpx.Client(
+                    verify=False,
+                    headers=http_headers if http_headers else None,
+                ),
             )
             _client_cache[key] = client
 
@@ -92,8 +101,8 @@ def get_llm_response_via_api(prompt,
                              TAU=1.0,
                              TOP_P=1.0,
                              SEED=42,
-                             MAX_TRIALS=3,
-                             TIME_GAP=5,
+                             MAX_TRIALS=5,
+                             TIME_GAP=10,
                              response_format=None):
     '''
     res = get_llm_response_via_api(prompt='hello')  # Default: TAU Sampling (TAU=1.0)
@@ -134,7 +143,11 @@ def get_llm_response_via_api(prompt,
             if "request timed out" in str(e).strip().lower():
                 break
             print(client.api_key, "Retrying...")
-            time.sleep(TIME_GAP)
+            # Exponential backoff for rate limits
+            wait_time = TIME_GAP * (2 ** (MAX_TRIALS - trials_left - 1))
+            if "429" in str(e) or "rate" in str(e).lower():
+                wait_time = max(wait_time, 30)
+            time.sleep(wait_time)
 
     if completion is None:
         raise Exception("Reach MAX_TRIALS={}".format(MAX_TRIALS))
@@ -143,8 +156,23 @@ def get_llm_response_via_api(prompt,
     meta_info = completion.usage
     completion_tokens = meta_info.completion_tokens
     prompt_tokens = meta_info.prompt_tokens
-    # total_tokens = meta_info.total_tokens
-    # print(completion_tokens, prompt_tokens, total_tokens)
+
+    # Safety net for thinking models: if finish_reason is "length" and content is empty,
+    # the reasoning consumed all max_tokens. Retry with doubled max_tokens (up to 8192).
+    choice = contents[0]
+    if (choice.finish_reason == "length" and
+            (not choice.message.content or choice.message.content.strip() == "") and
+            MAX_TOKENS < 8192):
+        retry_max_tokens = min(MAX_TOKENS * 2, 8192)
+        print(f"[llm_utils] Thinking model token budget exhausted (max_tokens={MAX_TOKENS}), "
+              f"retrying with max_tokens={retry_max_tokens}")
+        return get_llm_response_via_api(
+            prompt=prompt, LLM_MODEL=LLM_MODEL, base_url=base_url,
+            api_key=api_key, MAX_TOKENS=retry_max_tokens, TAU=TAU,
+            TOP_P=TOP_P, SEED=SEED, MAX_TRIALS=MAX_TRIALS,
+            TIME_GAP=TIME_GAP, response_format=response_format
+        )
+
     if len(contents) == 1:
         return contents[0].message.content, prompt_tokens, completion_tokens
     else:

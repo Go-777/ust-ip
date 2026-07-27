@@ -17,8 +17,12 @@ from src.config import AgenticMemoryConfig, get_agentic_memory_args
 from src.trainer import BaseTrainer, get_trainer
 from src.executor import ExecutionResult
 from src.memory_bank import MemoryBank
-from src.data_processing.alfworld import chunk_trajectories_by_tokens
-from src.alfworld_env_runner import run_alfworld_episode
+try:
+    from src.data_processing.alfworld import chunk_trajectories_by_tokens
+    from src.alfworld_env_runner import run_alfworld_episode
+except ImportError:
+    chunk_trajectories_by_tokens = None
+    run_alfworld_episode = None
 from rag_utils import get_embeddings
 from eval_utils import llm_judge
 from llm_utils import get_llm_response
@@ -138,6 +142,10 @@ def _extract_memory_actions_step(trainer: BaseTrainer,
 
     state_tensor = torch.tensor(state_embedding, dtype=torch.float32).to(trainer.device)
     op_tensor = torch.tensor(op_embeddings, dtype=torch.float32).to(trainer.device)
+
+    # Set text context for LLM controller (no-op if using PPO controller)
+    if hasattr(trainer.controller, 'set_context'):
+        trainer.controller.set_context(session_text, retrieved_memories)
 
     action_idx, _, _ = trainer.controller(state_tensor, op_tensor, deterministic=True)
     if isinstance(action_idx, list):
@@ -1057,13 +1065,22 @@ def main():
             return infer_alfworld_memories(trainer, train_data, test_data, args)
         return infer_text_dataset_memories(trainer, test_data, args)
 
+    # Check if GRPO mode is requested
+    grpo_enabled = getattr(config, "grpo_enabled", False)
+    if grpo_enabled:
+        print("\n[GRPO] GRPO mode detected. Use `python train_grpo.py` for GRPO training.")
+        print("[GRPO] Falling back to standard eval-only mode with current operation bank.")
+
     if args.eval_only:
         # Load checkpoint and infer
-        if args.load_checkpoint is None:
-            raise ValueError("Must specify --load-checkpoint for inference")
+        if args.load_checkpoint is None and getattr(args, 'controller_type', 'ppo') == 'ppo':
+            raise ValueError("Must specify --load-checkpoint for inference (PPO mode)")
 
-        print(f"Loading checkpoint from {args.load_checkpoint}")
-        trainer.load_checkpoint(args.load_checkpoint)
+        if args.load_checkpoint is not None:
+            print(f"Loading checkpoint from {args.load_checkpoint}")
+            trainer.load_checkpoint(args.load_checkpoint)
+        else:
+            print("[LLM Controller] No checkpoint needed — using LLM as zero-shot policy")
 
         # Infer and save memories
         _run_inference()

@@ -131,9 +131,10 @@ class Evaluator(ABC):
             Modified args for evaluation
         """
         eval_args = copy.deepcopy(self.args)
-        eval_args.max_new_tokens = 32
+        eval_args.max_new_tokens = 512
         eval_args.temperature = 0.0
-        eval_args.batch_size = 32
+        eval_args.batch_size = 2
+        eval_args.round = 5
         return eval_args
 
     def compute_f1(self, prediction: str, ground_truth: str, qa_item: Dict = None) -> float:

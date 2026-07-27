@@ -807,16 +807,20 @@ class Designer:
     """
     Designer evolves the operation bank based on failure case analysis.
     Uses clustering to identify patterns in failure cases and proposes improvements.
+    Supports two modes:
+    - Legacy: uses args + get_llm_response_via_api directly
+    - New (GRPO): uses LLMClient with role="designer" for unified API management
     """
 
     def __init__(self, args,
                  collect_epochs_before_designer: int = 5,
-                 num_clusters: int = 5,
+            num_clusters: int = 5,
                  samples_per_cluster: int = 3,
                  f1_threshold: float = 0.5,
                  failure_window_epochs: int = 20,
                  failure_pool_size: int = 200,
                  encoder=None,
+                 llm_client=None,
                  logger: Optional[logging.Logger] = None):
         """
         Args:
@@ -826,6 +830,7 @@ class Designer:
             samples_per_cluster: Number of cases to sample from each cluster
             f1_threshold: F1 threshold for success/failure classification
             encoder: Shared BaseTextEncoder instance (optional, avoids loading multiple models)
+            llm_client: Optional LLMClient instance for new architecture (GRPO mode)
             logger: Logger instance for output
         """
         self.args = args
@@ -834,6 +839,7 @@ class Designer:
         self.samples_per_cluster = samples_per_cluster
         self.f1_threshold = f1_threshold
         self.logger = logger or logging.getLogger('AgenticMemory')
+        self.llm_client = llm_client  # Optional: new LLMClient instance
 
         # Initialize case collector
         self.case_collector = CaseCollector(
@@ -857,7 +863,29 @@ class Designer:
             )
         return self._encoder
 
-    def _call_llm_with_retry(self, prompt: str, max_tokens: int, tau: float) -> str:
+    def _call_llm_with_retry(self, prompt: str, max_tokens: int, tau: float,
+                             n: int = 1) -> str:
+        """Call LLM with retry. Supports new LLMClient or legacy API.
+        Args:
+            prompt: Input prompt
+            max_tokens: Max generation tokens
+            tau: Temperature
+            n: Number of completions (for GRPO sampling, only works with llm_client)
+        Returns:
+            Single response string, or list of strings if n > 1
+        """
+        # New architecture: use LLMClient
+        if self.llm_client is not None:
+            result = self.llm_client.call(
+                role="designer",
+                prompt=prompt,
+                temperature=tau,
+                max_tokens=max_tokens,
+                n=n,
+            )
+            return result
+
+        # Legacy path: direct API call
         max_rounds = int(getattr(self.args, "round", 1) or 1)
         max_rounds = max(1, max_rounds)
         last_exc: Optional[Exception] = None

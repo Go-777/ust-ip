@@ -1,5 +1,6 @@
 """
 Executor: Executes operations using LLM API
+Supports both legacy API mode (llm_utils) and new LLMClient mode.
 """
 import json
 import re
@@ -11,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from json_repair import repair_json
 from llm_utils import get_llm_response_via_api
 from rag_utils import get_embeddings
-from typing import List, Union
+from typing import List, Union, Optional
 
 
 class ExecutionResult:
@@ -33,11 +34,15 @@ class ExecutionResult:
 class Executor:
     """
     Executor executes operations by calling LLM API
-    Parses LLM output and applies changes to memory bank
+    Parses LLM output and applies changes to memory bank.
+    Supports two modes:
+    - Legacy: uses args + get_llm_response_via_api directly
+    - New: uses LLMClient with role="executor" for unified API management
     """
-    def __init__(self, args):
+    def __init__(self, args, llm_client=None):
         self.args = args
         self.retriever_name = args.retriever
+        self.llm_client = llm_client  # Optional: new LLMClient instance
         self.logger = logging.getLogger('AgenticMemory')
 
     def _build_executor_prompt(self, operations: List, session_text: str,
@@ -136,18 +141,26 @@ class Executor:
             # Build executor prompt from selected skills
             instruction = self._build_executor_prompt(operations, sub_text, retrieved_memories)
 
-            # Call LLM API
+            # Call LLM API (prefer new LLMClient if available)
             try:
-                  response, _, _ = get_llm_response_via_api(
-                      prompt=instruction,
-                      LLM_MODEL=self.args.model,
-                      base_url=self.args.api_base,
-                      api_key=self.args.api_key,
-                      MAX_TOKENS=self.args.max_new_tokens,
-                      TAU=self.args.temperature,
-                      MAX_TRIALS=10,
-                      TIME_GAP=3,
-                  )
+                if self.llm_client is not None:
+                    response = self.llm_client.call(
+                        role="executor",
+                        prompt=instruction,
+                        temperature=self.args.temperature,
+                        max_tokens=self.args.max_new_tokens,
+                    )
+                else:
+                    response,_, _ = get_llm_response_via_api(
+                        prompt=instruction,
+                        LLM_MODEL=self.args.model,
+                        base_url=self.args.api_base,
+                        api_key=self.args.api_key,
+                        MAX_TOKENS=self.args.max_new_tokens,
+                        TAU=self.args.temperature,
+                        MAX_TRIALS=10,
+                        TIME_GAP=3,
+                    )
             except Exception as e:
                 self.logger.warning(f"Executor API call failed: {e}")
                 all_results.append(ExecutionResult(
