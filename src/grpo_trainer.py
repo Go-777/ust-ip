@@ -746,7 +746,7 @@ class GRPODataPreparer:
         base_op_dict = operation_bank.to_dict()
         samples = []
 
-        for case_batch in self._chunk_cases(bad_cases):
+        for case_batch in self._chunk_cases(bad_cases, self.config.case_chunk_size):
             # Stage1: Analysis (greedy)
             analysis_prompt = analysis_prompt_template.format(
                 bad_cases=json.dumps(case_batch, ensure_ascii=False, indent=2)
