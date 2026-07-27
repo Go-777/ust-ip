@@ -249,17 +249,21 @@ class LLMClient:
                     "temperature": temp,
                     "top_p": tp,
                     "max_tokens": max_tok,
-                    "n": n,
                 }
                 if response_format is not None:
                     api_params["response_format"] = response_format
 
-                completion = client.chat.completions.create(**api_params)
-
                 if n == 1:
+                    # Single completion
+                    completion = client.chat.completions.create(**api_params)
                     return completion.choices[0].message.content
                 else:
-                    return [c.message.content for c in completion.choices]
+                    # Multiple completions: loop n times (DashScope doesn't support n>1 for most models)
+                    results = []
+                    for _i in range(n):
+                        completion = client.chat.completions.create(**api_params)
+                        results.append(completion.choices[0].message.content)
+                    return results
 
             except Exception as e:
                 last_error = e
