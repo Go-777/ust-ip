@@ -858,7 +858,11 @@ class GRPODataPreparer:
                 )
             except Exception as e:
                 logger.warning(f"[GRPO] Stage1 analysis failed: {e}")
+                print(f"  [GRPO-DEBUG] Stage1 analysis FAILED: {e}")
                 continue
+
+            print(f"  [GRPO-DEBUG] Stage1 analysis OK (len={len(analysis)})")
+            print(f"  [GRPO-DEBUG] Stage1 first 300 chars: {analysis[:300]}")
 
             # Stage2: Sample G candidates (temp=0.7)
             refinement_prompt = refinement_prompt_template.format(
@@ -881,7 +885,12 @@ class GRPODataPreparer:
                     candidates = [candidates]
             except Exception as e:
                 logger.warning(f"[GRPO] Stage2 sampling failed: {e}")
+                print(f"  [GRPO-DEBUG] Stage2 sampling FAILED: {e}")
                 continue
+
+            print(f"  [GRPO-DEBUG] Stage2 got {len(candidates)} candidates")
+            for ci, c in enumerate(candidates):
+                print(f"  [GRPO-DEBUG] Candidate {ci} (first 200 chars): {c[:200]}")
 
             # Compute rewards for each candidate
             rewards = []
@@ -889,14 +898,17 @@ class GRPODataPreparer:
             for candidate_text in candidates:
                 parsed = self._parse_candidate(candidate_text)
                 if parsed:
+                    print(f"  [GRPO-DEBUG] Parsed OK: name={parsed.get('name')}, action={parsed.get('action')}, update_type={parsed.get('update_type')}")
                     reward = self.reward_computer.compute_reward_for_candidate(
                         candidate_skill=parsed,
                         bad_cases=case_batch,
                         base_operation_bank_dict=base_op_dict,
                     )
+                    print(f"  [GRPO-DEBUG] Reward for this candidate: {reward}")
                 else:
                     reward = 0.0
                     parse_failures += 1
+                    print(f"  [GRPO-DEBUG] Parse FAILED for candidate: {candidate_text[:200]}")
                 rewards.append(reward)
 
             if parse_failures == len(candidates):
