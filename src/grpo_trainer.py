@@ -273,12 +273,14 @@ class GRPORewardComputer:
         if self.config.reward_metric == "llm_judge":
             # Generate QA answer using updated memory, then judge it
             qa_prediction = self._generate_qa_answer(
-                question, temp_memory_bank, retrieved_memories
+                question, temp_memory_bank, retrieved_memories,
+                initial_memory_count=mem_count_before,
             )
             reward = self._judge_reward(question, ground_truth, qa_prediction)
         else:
             reward = self._compute_qa_f1_reward(
-                question, ground_truth, temp_memory_bank, retrieved_memories
+                question, ground_truth, temp_memory_bank, retrieved_memories,
+                initial_memory_count=mem_count_before,
             )
 
         # [DEBUG] Print QA result
@@ -522,40 +524,49 @@ class GRPORewardComputer:
         question: str,
         memory_bank: 'MemoryBank',
         fallback_memories: list,
+        initial_memory_count: int = 0,
     ) -> str:
-        """Generate a QA answer using updated memories.
+        """Generate a QA answer using ONLY executor-produced memories.
 
-        Combines fallback_memories (pre-retrieved from case) with any NEW memories
-        added to memory_bank during Step 4 (executor apply). This ensures that
-        skill improvements that insert better memories into the bank actually
-        affect the QA answer and produce differentiated rewards.
+        Uses only the NEW memories added by the executor (Step 4) as context,
+        not the raw retrieved conversation chunks. This ensures that the reward
+        truly reflects whether the skill extracted useful factual information,
+        rather than whether the QA model can read raw dialogue.
 
         Args:
             question: The evaluation question
-            memory_bank: Updated memory bank (may contain new memories from Step 4)
-            fallback_memories: Original retrieved memories from case (pre-retrieved
-               by question embedding, matching real eval pipeline)
+            memory_bank: Updated memory bank (contains initial + new memories)
+            fallback_memories: Original retrieved memories (used only as fallback
+                if executor produced zero new memories)
+            initial_memory_count: Number of memories before executor ran (to
+                identify which ones are new)
 
         Returns:
             Generated answer string (or empty string on failure)
         """
         context_memories = []
 
-        # Start with fallback_memories (pre-retrieved by question relevance)
-        if fallback_memories:
-            context_memories = list(fallback_memories)
+        # Primary: use executor-produced (new) memories for QA
+      # These are concise factual statements extracted by the skill
+        if memory_bank is not None and len(memory_bank.memories) > initial_memory_count:
+            new_memories = memory_bank.memories[initial_memory_count:]
+            for mem in new_memories[:15]:
+                context_memories.append(mem.content)
 
-        # ALSO include memories from the updated memory_bank that were added
-        # by the executor in Step 4. This is the key mechanism that allows
-        # skill improvements to produce differentiated rewards.
-        if memory_bank is not None and len(memory_bank.memories) > 0:
-            existing_set = set(context_memories)
-            for mem in memory_bank.memories[:20]:
-                if mem.content not in existing_set:
+        # Also include MODIFIED original memories (updates)
+        if memory_bank is not None and initial_memory_count > 0:
+            original_contents = set(fallback_memories or [])
+            for mem in memory_bank.memories[:initial_memory_count]:
+                if mem.content not in original_contents:
                     context_memories.append(mem.content)
-                    existing_set.add(mem.content)
 
-        # Limit total context to avoid token overflow
+        # Fallback: if executor produced nothing new, use original memories
+        # This should yield low reward (similar to baseline)
+        if not context_memories:
+            if fallback_memories:
+                context_memories = list(fallback_memories[:5])
+
+        # Limit total context
         context_memories = context_memories[:20]
 
         # Build QA prompt
@@ -591,6 +602,7 @@ class GRPORewardComputer:
         ground_truth: str,
         memory_bank: 'MemoryBank',
         fallback_memories: list,
+        initial_memory_count: int = 0,
     ) -> float:
         """Compute QA F1 reward by generating an answer using updated memories.
 
@@ -601,11 +613,15 @@ class GRPORewardComputer:
             ground_truth: Expected answer
             memory_bank: Updated memory bank (or None)
             fallback_memories: Original retrieved memories (used if no memory bank)
+            initial_memory_count: Number of memories before executor ran
 
         Returns:
             F1 score (0.0 - 1.0)
         """
-        prediction = self._generate_qa_answer(question, memory_bank, fallback_memories)
+        prediction = self._generate_qa_answer(
+            question, memory_bank, fallback_memories,
+            initial_memory_count=initial_memory_count,
+        )
         if not prediction:
             return 0.0
         return self._token_f1(prediction, ground_truth)
@@ -627,12 +643,36 @@ class GRPORewardComputer:
             skill_desc += f"[{op.name}] ({op.update_type.upper()}): {op.description}\n"
             skill_desc += f"Instructions: {op.instruction_template}\n\n"
 
+        format_guide = (
+            "OUTPUT FORMAT (strictly follow this structure):\n"
+            "For INSERT:\n"
+            "  ACTION: INSERT\n"
+            "  MEMORY_ITEM: <concise factual statement to store>\n"
+            "  REASONING: <why this fact is worth storing>\n\n"
+            "For UPDATE:\n"
+            "  ACTION: UPDATE\n"
+            "  MEMORY_INDEX: <index number of memory to update>\n"
+            "  UPDATED_MEMORY: <the revised memory content>\n"
+            "  REASONING: <why this update is needed>\n\n"
+            "For DELETE:\n"
+            "  ACTION: DELETE\n"
+            "  MEMORY_INDEX: <index number of memory to delete>\n"
+            "  REASONING: <why this memory should be removed>\n\n"
+            "For NOOP:\n"
+            "  ACTION: NOOP\n"
+            "  REASONING: <why no changes are needed>\n\n"
+            "IMPORTANT: Output ONLY the structured actions above. "
+            "Do NOT copy raw conversation text into MEMORY_ITEM or UPDATED_MEMORY. "
+            "Each memory item must be a concise factual summary, not a dialogue excerpt."
+        )
+
         return (
             f"Apply the following skill to manage memory:\n\n"
             f"Skill:\n{skill_desc}\n"
             f"Input Text:\n{session_text}\n\n"
             f"Current Memories:\n{mem_text}\n\n"
-            f"Output memory actions (INSERT/UPDATE/DELETE/NOOP):"
+            f"{format_guide}\n\n"
+            f"Your actions:"
         )
 
     def _f1_reward(self, case: Dict, executor_response: str) -> float:
