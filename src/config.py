@@ -105,15 +105,15 @@ class AgenticMemoryConfig:
         self.grpo_export_dir = "./grpo_data"  # Directory for OpenRLHF export data
 
         # LLM Client settings (new architecture: role-based model assignment)
-        # Using JD Cloud tokenPlan service
+        # Model configuration (base URLs default to None; --api-base is used as fallback)
         self.selector_model = "maas-token-latest"  # Skill Selector model
-        self.selector_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.selector_api_base = None
         self.executor_model = "maas-token-latest"  # Executor model
-        self.executor_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.executor_api_base = None
         self.judge_model = "maas-token-latest"  # QA Judge model
-        self.judge_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.judge_api_base = None
         self.designer_local_model = "maas-token-latest"  # Designer model
-        self.designer_api_base = "https://modelservice.jdcloud.com/tokenPlan/openai/v1"
+        self.designer_api_base = None
         self.dashscope_api_keys = []  # API keys for gateway
 
         # Executor settings
@@ -400,20 +400,20 @@ def get_agentic_memory_args():
     # LLM Client args (new architecture)
     parser.add_argument('--selector-model', type=str, default='maas-token-latest',
                         help='Model name for Skill Selector')
-    parser.add_argument('--selector-api-base', type=str,
-                        default='https://modelservice.jdcloud.com/tokenPlan/openai/v1')
+    parser.add_argument('--selector-api-base', type=str, default=None,
+                        help='API base URL for Selector (defaults to --api-base)')
     parser.add_argument('--executor-model', type=str, default='maas-token-latest',
                         help='Model name for Executor')
-    parser.add_argument('--executor-api-base', type=str,
-                        default='https://modelservice.jdcloud.com/tokenPlan/openai/v1')
+    parser.add_argument('--executor-api-base', type=str, default=None,
+                        help='API base URL for Executor (defaults to --api-base)')
     parser.add_argument('--judge-model', type=str, default='maas-token-latest',
                         help='Model name for QA Judge')
-    parser.add_argument('--judge-api-base', type=str,
-                        default='https://modelservice.jdcloud.com/tokenPlan/openai/v1')
+    parser.add_argument('--judge-api-base', type=str, default=None,
+                        help='API base URL for Judge (defaults to --api-base)')
     parser.add_argument('--designer-local-model', type=str, default='maas-token-latest',
                         help='Model for Designer')
-    parser.add_argument('--designer-api-base', type=str, default='https://modelservice.jdcloud.com/tokenPlan/openai/v1',
-                        help='API base URL for Designer model')
+    parser.add_argument('--designer-api-base', type=str, default=None,
+                        help='API base URL for Designer model (defaults to --api-base)')
     parser.add_argument('--dashscope-api-keys', type=str, nargs='+', default=[],
                         help='API keys for gateway')
 
