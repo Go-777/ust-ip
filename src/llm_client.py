@@ -54,36 +54,33 @@ class ModelConfig:
         )
 
 
-# Default configurations for each role based on confirmed selection
-# JD Cloud tokenPlan service (port 8443 for SSH tunnel on server, standard 443 locally)
+# Default API base URL: DashScope (Alibaba Cloud) compatible endpoint
 DEFAULT_API_BASE_URL = os.environ.get(
-    "TOKENPLAN_API_BASE",
-    "https://modelservice.jdcloud.com:8443/tokenPlan/openai/v1"
+    "DASHSCOPE_API_BASE",
+    "https://dashscope.aliyuncs.com/compatible-mode/v1"
 )
-# Legacy DashScope URL (requires public internet - not available on JD servers)
-LEGACY_DASHSCOPE_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 ROLE_DEFAULTS = {
     "selector": ModelConfig(
-        model_name="maas-token-latest",
+        model_name="qwen-plus",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=2048,
         temperature=0.0,
     ),
     "executor": ModelConfig(
-        model_name="maas-token-latest",
+        model_name="qwen-plus",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=2048,
         temperature=0.0,
     ),
     "judge": ModelConfig(
-        model_name="maas-token-latest",
+        model_name="qwen-plus",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=1024,
         temperature=0.0,
     ),
     "designer": ModelConfig(
-        model_name="maas-token-latest",
+        model_name="qwen-plus",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=4096,
         temperature=0.0,
@@ -182,19 +179,12 @@ class LLMClient:
             # Cache key
             cache_key = f"{cfg.base_url}|{key}"
             if cache_key not in self._client_cache:
-                # When using SSH tunnel (localhost), inject Host header for proper routing
-                http_headers = {}
-                if "localhost" in cfg.base_url or "127.0.0.1" in cfg.base_url:
-                    http_headers["Host"] = "modelservice.jdcloud.com"
                 self._client_cache[cache_key] = openai.OpenAI(
                     base_url=cfg.base_url,
                     api_key=key,
                     max_retries=1,  # We handle retries ourselves
                     timeout=cfg.timeout,
-                    http_client=httpx.Client(
-                        verify=False,
-                        headers=http_headers if http_headers else None,
-                    ),
+                    http_client=httpx.Client(verify=False),
                 )
             return self._client_cache[cache_key]
 
@@ -407,13 +397,13 @@ def create_llm_client_from_args(args) -> LLMClient:
 
     # Build role configs from args
     # Default model: use --model arg as fallback for all roles
-    default_model = getattr(args, "model", "maas-token-latest")
+    default_model = getattr(args, "model", "qwen-plus")
 
     def _resolve_model(role_attr: str) -> str:
         """Get role-specific model or fallback to --model."""
         val = getattr(args, role_attr, None)
-        # If role-specific model is the hardcoded default and user provided --model, use --model
-        if not val or val == "maas-token-latest":
+        # If role-specific model is not set or same as global default, use --model
+        if not val or val == default_model:
             return default_model
         return val
 
@@ -443,7 +433,7 @@ def create_llm_client_from_args(args) -> LLMClient:
 
     # Judge config: prefer --judge-model over legacy --llm-judge-model
     judge_model_val = getattr(args, "judge_model", None)
-    if not judge_model_val or judge_model_val == "maas-token-latest":
+    if not judge_model_val or judge_model_val == default_model:
         judge_model_val = _resolve_model("llm_judge_model")
     else:
         judge_model_val = judge_model_val  # explicit --judge-model takes priority

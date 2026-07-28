@@ -112,7 +112,7 @@ def parse_judge_response(response):
 def llm_judge(task_args, args):
     judge_args = copy.deepcopy(args)
     judge_args.max_new_tokens = 1024
-    judge_args.model = getattr(judge_args, "llm_judge_model", None) or getattr(args, "model", "maas-token-latest")
+    judge_args.model = getattr(judge_args, "llm_judge_model", None) or getattr(args, "model", "qwen-plus")
     judge_args.temperature = 0.0
     judge_args.api = True
     judge_args.batch_size = 2

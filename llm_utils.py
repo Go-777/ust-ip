@@ -74,19 +74,12 @@ def _get_client_round_robin(
 
         client = _client_cache.get(key)
         if client is None:
-            # When using SSH tunnel (localhost), inject Host header for routing
-            http_headers = {}
-            if "localhost" in base_url or "127.0.0.1" in base_url:
-                http_headers["Host"] = "modelservice.jdcloud.com"
             client = openai.OpenAI(
                 base_url=base_url,
                 api_key=key,
                 max_retries=max_retries,
                 timeout=timeout,
-                http_client=httpx.Client(
-                    verify=False,
-                    headers=http_headers if http_headers else None,
-                ),
+                http_client=httpx.Client(verify=False),
             )
             _client_cache[key] = client
 
