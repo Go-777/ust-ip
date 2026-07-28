@@ -968,12 +968,19 @@ class GRPOTrainingLoop:
 
         if not samples:
             self.logger.warning("[GRPOLoop] No valid samples produced")
-            return {
+            # Still record this iteration so should_stop() can count it
+            failed_result = {
                 "samples": [],
                 "best_candidate": None,
                 "avg_reward": 0.0,
+                "best_reward": 0.0,
                 "improved": False,
+                "num_samples": 0,
+                "total_candidates": 0,
             }
+            self.iteration_history.append(failed_result)
+            self.no_improvement_count += 1
+            return failed_result
 
         # Find best candidate across all samples
         best_candidate_text = None
