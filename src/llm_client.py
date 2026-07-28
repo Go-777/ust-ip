@@ -74,7 +74,7 @@ ROLE_DEFAULTS = {
         temperature=0.0,
     ),
     "judge": ModelConfig(
-        model_name="qwen-plus",
+        model_name="qwen3.7-max",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=1024,
         temperature=0.0,

@@ -237,6 +237,9 @@ Output ONLY valid JSON."""
 
         # Select chunk of bad cases for this iteration
         chunk_start = ((iteration - 1) * grpo_config.case_chunk_size) % len(bad_cases)
+        # Shuffle bad_cases every time we complete a full pass
+        if chunk_start == 0 and iteration > 1:
+            random.shuffle(bad_cases)
         chunk_end = chunk_start + grpo_config.case_chunk_size
         if chunk_end > len(bad_cases):
             chunk = bad_cases[chunk_start:] + bad_cases[:chunk_end - len(bad_cases)]

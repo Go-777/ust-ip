@@ -1,0 +1,50 @@
+{
+  "stats": {
+    "selector": {
+      "role": "Selector",
+      "model": "qwen3.5-flash",
+      "n": 5,
+      "total_in": 3840,
+      "total_out": 60,
+      "avg_in": 768.0,
+      "avg_out": 12.0,
+      "elapsed": 3.9
+    },
+    "executor": {
+      "role": "Executor",
+      "model": "qwen3.5-plus",
+      "n": 5,
+      "total_in": 3700,
+      "total_out": 650,
+      "avg_in": 740.0,
+      "avg_out": 130.0,
+      "elapsed": 17.3
+    },
+    "qa_response": {
+      "role": "QA Response",
+      "model": "qwen3.5-plus",
+      "n": 5,
+      "total_in": 925,
+      "total_out": 46,
+      "avg_in": 185.0,
+      "avg_out": 9.2,
+      "elapsed": 7.0
+    },
+    "judge": {
+      "role": "Judge",
+      "model": "qwen3.7-plus",
+      "n": 5,
+      "total_in": 1599,
+      "total_out": 384,
+      "avg_in": 319.8,
+      "avg_out": 76.8,
+      "elapsed": 12.6
+    }
+  },
+  "cost_estimate": {
+    "plan_a_cost": 5.1,
+    "plan_b_cost": 20.2,
+    "plan_a_hours": 2.6,
+    "plan_b_hours": 4.6
+  }
+}

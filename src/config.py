@@ -110,7 +110,7 @@ class AgenticMemoryConfig:
         self.selector_api_base = None
         self.executor_model = "qwen-plus"  # Executor model
         self.executor_api_base = None
-        self.judge_model = "qwen-plus"  # QA Judge model
+        self.judge_model = "qwen3.7-max"  # QA Judge model (strongest for reward signal)
         self.judge_api_base = None
         self.designer_local_model = "qwen-plus"  # Designer model
         self.designer_api_base = None
@@ -406,8 +406,8 @@ def get_agentic_memory_args():
                         help='Model name for Executor')
     parser.add_argument('--executor-api-base', type=str, default=None,
                         help='API base URL for Executor (defaults to --api-base)')
-    parser.add_argument('--judge-model', type=str, default='qwen-plus',
-                        help='Model name for QA Judge')
+    parser.add_argument('--judge-model', type=str, default='qwen3.7-max',
+                        help='Model name for QA Judge (strongest model for reward signal)')
     parser.add_argument('--judge-api-base', type=str, default=None,
                         help='API base URL for Judge (defaults to --api-base)')
     parser.add_argument('--designer-local-model', type=str, default='qwen-plus',

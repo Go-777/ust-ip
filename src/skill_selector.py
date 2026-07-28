@@ -174,7 +174,7 @@ class SkillSelector:
                 data = json.loads(json_match.group())
                 skills = data.get("selected_skills", [])
                 if isinstance(skills, list):
-                    return [str(s) for s in skills]
+                    return [str(s).strip("[]") for s in skills]
         except (json.JSONDecodeError, ValueError):
             pass
 

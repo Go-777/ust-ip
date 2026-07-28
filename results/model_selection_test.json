@@ -1,0 +1,610 @@
+{
+  "selector_flash_nothink": {
+    "model": "qwen3.5-flash",
+    "description": "Selector: Flash",
+    "no_think": true,
+    "prompts": 20,
+    "ok": 20,
+    "in_tokens": 3125,
+    "out_tokens": 20,
+    "elapsed": 12.4,
+    "results": [
+      {
+        "idx": 0,
+        "response": "noop",
+        "in": 156,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 1,
+        "response": "noop",
+        "in": 153,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 2,
+        "response": "noop",
+        "in": 159,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 3,
+        "response": "insert",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 4,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 5,
+        "response": "noop",
+        "in": 158,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 6,
+        "response": "noop",
+        "in": 162,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 7,
+        "response": "noop",
+        "in": 152,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 8,
+        "response": "noop",
+        "in": 152,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 9,
+        "response": "noop",
+        "in": 155,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 10,
+        "response": "noop",
+        "in": 155,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 11,
+        "response": "noop",
+        "in": 160,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 12,
+        "response": "noop",
+        "in": 155,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 13,
+        "response": "noop",
+        "in": 160,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 14,
+        "response": "noop",
+        "in": 149,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 15,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 16,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 17,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 18,
+        "response": "noop",
+        "in": 152,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 19,
+        "response": "noop",
+        "in": 162,
+        "out": 1,
+        "ok": true
+      }
+    ]
+  },
+  "selector_plus_nothink": {
+    "model": "qwen3.5-plus",
+    "description": "Selector: Plus",
+    "no_think": true,
+    "prompts": 20,
+    "ok": 20,
+    "in_tokens": 3125,
+    "out_tokens": 20,
+    "elapsed": 28.1,
+    "results": [
+      {
+        "idx": 0,
+        "response": "noop",
+        "in": 156,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 1,
+        "response": "noop",
+        "in": 153,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 2,
+        "response": "noop",
+        "in": 159,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 3,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 4,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 5,
+        "response": "noop",
+        "in": 158,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 6,
+        "response": "noop",
+        "in": 162,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 7,
+        "response": "noop",
+        "in": 152,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 8,
+        "response": "noop",
+        "in": 152,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 9,
+        "response": "noop",
+        "in": 155,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 10,
+        "response": "noop",
+        "in": 155,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 11,
+        "response": "noop",
+        "in": 160,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 12,
+        "response": "noop",
+        "in": 155,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 13,
+        "response": "noop",
+        "in": 160,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 14,
+        "response": "noop",
+        "in": 149,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 15,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 16,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 17,
+        "response": "noop",
+        "in": 157,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 18,
+        "response": "noop",
+        "in": 152,
+        "out": 1,
+        "ok": true
+      },
+      {
+        "idx": 19,
+        "response": "noop",
+        "in": 162,
+        "out": 1,
+        "ok": true
+      }
+    ]
+  },
+  "judge_plus_nothink": {
+    "model": "qwen3.5-plus",
+    "description": "Judge: Plus",
+    "no_think": true,
+    "prompts": 20,
+    "ok": 20,
+    "in_tokens": 2630,
+    "out_tokens": 871,
+    "elapsed": 38.8,
+    "results": [
+      {
+        "idx": 0,
+        "response": "{\"score\": 2, \"reason\": \"The prediction 'last year' is a relative timeframe that lacks the specific precision of the ground truth ('7 May 2023'). Without knowing the current date context, it cannot be verified as accurate, and even if the year matches, it fails to provide the specific day and month required by the question.\"}",
+        "in": 132,
+        "out": 74,
+        "ok": true
+      },
+      {
+        "idx": 1,
+        "response": "{\"score\": 0, \"reason\": \"The prediction explicitly states 'I dont know', failing to provide the correct answer (2022) found in the ground truth.\"}",
+        "in": 127,
+        "out": 38,
+        "ok": true
+      },
+      {
+        "idx": 2,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'somewhere' is a location and does not answer the question about specific educational fields, making it completely irrelevant to the ground truth.\"}",
+        "in": 130,
+        "out": 40,
+        "ok": true
+      },
+      {
+        "idx": 3,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'unknown' while the ground truth provides a specific date (19 January, 2023), making the answer completely wrong.\"}",
+        "in": 133,
+        "out": 42,
+        "ok": true
+      },
+      {
+        "idx": 4,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'unknown' while the ground truth provides a specific date (January, 2023), making the answer completely wrong.\"}",
+        "in": 130,
+        "out": 40,
+        "ok": true
+      },
+      {
+        "idx": 5,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states the information is not mentioned, while the ground truth explicitly provides the answer 'by dancing', making the prediction completely wrong.\"}",
+        "in": 127,
+        "out": 38,
+        "ok": true
+      },
+      {
+        "idx": 6,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'last year' is a time reference and does not answer the question asking for a person ('Who'). It is completely unrelated to the ground truth 'her mother'.\"}",
+        "in": 133,
+        "out": 47,
+        "ok": true
+      },
+      {
+        "idx": 7,
+        "response": "{\"score\": 4, \"reason\": \"The prediction 'last year' is factually consistent with '21 December 2022' if the current date is in 2023, but it lacks the specific precision of the ground truth.\"}",
+        "in": 130,
+        "out": 55,
+        "ok": true
+      },
+      {
+        "idx": 8,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states uncertainty and provides no factual information, failing to mention either of the correct martial arts listed in the ground truth.\"}",
+        "in": 128,
+        "out": 36,
+        "ok": true
+      },
+      {
+        "idx": 9,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'I dont know', failing to provide the specific answer found in the ground truth regarding Nate's teammates.\"}",
+        "in": 135,
+        "out": 35,
+        "ok": true
+      },
+      {
+        "idx": 10,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'I dont know' instead of providing the correct shared interests (watching movies, making desserts), resulting in a complete failure to answer the question.\"}",
+        "in": 130,
+        "out": 44,
+        "ok": true
+      },
+      {
+        "idx": 11,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'last year' is a relative time reference that does not match the specific ground truth year '2019' without knowing the current date, and in a static evaluation context, it is considered incorrect.\"}",
+        "in": 134,
+        "out": 55,
+        "ok": true
+      },
+      {
+        "idx": 12,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'unknown' while the ground truth provides specific, detailed goals, making the answer completely wrong.\"}",
+        "in": 132,
+        "out": 33,
+        "ok": true
+      },
+      {
+        "idx": 13,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'unknown', failing to provide any of the specific goals listed in the ground truth (endorsements, brand building, charity work), resulting in a completely wrong answer.\"}",
+        "in": 140,
+        "out": 48,
+        "ok": true
+      },
+      {
+        "idx": 14,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'I dont know' while the ground truth provides specific items, resulting in a complete failure to answer the question.\"}",
+        "in": 128,
+        "out": 37,
+        "ok": true
+      },
+      {
+        "idx": 15,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'unknown' while the ground truth provides a specific year (2020), making it completely wrong.\"}",
+        "in": 130,
+        "out": 36,
+        "ok": true
+      },
+      {
+        "idx": 16,
+        "response": "{\"score\": 0, \"reason\": \"The prediction explicitly states uncertainty ('not sure') and fails to provide the specific date range found in the ground truth, offering no correct information.\"}",
+        "in": 139,
+        "out": 39,
+        "ok": true
+      },
+      {
+        "idx": 17,
+        "response": "{\"score\": 0, \"reason\": \"The prediction states 'unknown', failing to provide any of the specific activities listed in the ground truth (boardgames, volunteering, wine tasting, growing flowers), resulting in a completely wrong answer.\"}",
+        "in": 138,
+        "out": 49,
+        "ok": true
+      },
+      {
+        "idx": 18,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'recently' is an adverb indicating time and does not answer the question about specific health problems, whereas the ground truth is 'Obesity'. The answer is completely irrelevant.\"}",
+        "in": 122,
+        "out": 49,
+        "ok": true
+      },
+      {
+        "idx": 19,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'somewhere' is a location indicator, not a recreational activity, and fails to answer the specific question asked.\"}",
+        "in": 132,
+        "out": 36,
+        "ok": true
+      }
+    ]
+  },
+  "judge_37plus_nothink": {
+    "model": "qwen3.7-plus",
+    "description": "Judge: 3.7-Plus",
+    "no_think": true,
+    "prompts": 20,
+    "ok": 20,
+    "in_tokens": 2630,
+    "out_tokens": 952,
+    "elapsed": 39.4,
+    "results": [
+      {
+        "idx": 0,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'last year' is a relative time reference that does not match the specific date '7 May 2023' provided in the ground truth. Without knowing the current date, it is impossible to verify if 'last year' corresponds to 2023, and even if it did, it lacks the precision required for a correct answer to a 'when' question asking for a specific date.\"\n}",
+        "in": 132,
+        "out": 101,
+        "ok": true
+      },
+      {
+        "idx": 1,
+        "response": "{\"score\": 0, \"reason\": \"The prediction explicitly states a lack of knowledge, failing to provide the correct answer found in the ground truth.\"}",
+        "in": 127,
+        "out": 32,
+        "ok": true
+      },
+      {
+        "idx": 2,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'somewhere' is a location, not a field of study, and fails to address the question entirely.\"\n}",
+        "in": 130,
+        "out": 41,
+        "ok": true
+      },
+      {
+        "idx": 3,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'unknown' fails to provide the specific date required by the ground truth, resulting in a completely incorrect answer.\"}",
+        "in": 133,
+        "out": 35,
+        "ok": true
+      },
+      {
+        "idx": 4,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'unknown' fails to provide the specific date required by the question, whereas the ground truth provides a clear answer ('January, 2023').\"}",
+        "in": 130,
+        "out": 44,
+        "ok": true
+      },
+      {
+        "idx": 5,
+        "response": "{\"score\": 0, \"reason\": \"The prediction claims the information is not mentioned, but the ground truth provides a specific answer ('by dancing'), indicating the information was present and the model failed to retrieve it.\"}",
+        "in": 127,
+        "out": 45,
+        "ok": true
+      },
+      {
+        "idx": 6,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'last year' is a time reference and does not answer the question 'Who', which requires a person or entity. It is completely unrelated to the ground truth 'her mother'.\"\n}",
+        "in": 133,
+        "out": 56,
+        "ok": true
+      },
+      {
+        "idx": 7,
+        "response": "{\"score\": 4, \"reason\": \"The prediction 'last year' is a relative time reference that lacks the specific precision of the ground truth '21 December 2022'. Without knowing the current date context, it is ambiguous and only partially correct as it identifies the general timeframe but fails to provide the exact date.\"}",
+        "in": 130,
+        "out": 69,
+        "ok": true
+      },
+      {
+        "idx": 8,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'not sure' fails to provide any of the required information (Kickboxing, Taekwondo) and does not answer the question.\"\n}",
+        "in": 128,
+        "out": 47,
+        "ok": true
+      },
+      {
+        "idx": 9,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'I dont know' fails to provide the specific information present in the ground truth (teammates on his video game team), offering no useful answer.\"\n}",
+        "in": 135,
+        "out": 50,
+        "ok": true
+      },
+      {
+        "idx": 10,
+        "response": "{\"score\": 0, \"reason\": \"The prediction explicitly states 'I dont know', failing to provide the correct information present in the ground truth.\"}",
+        "in": 130,
+        "out": 32,
+        "ok": true
+      },
+      {
+        "idx": 11,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'last year' is a relative time reference that does not match the specific absolute year '2019' provided in the ground truth. Without knowing the current date or context, 'last year' cannot be verified as correct and is semantically different from the required answer.\"\n}",
+        "in": 134,
+        "out": 75,
+        "ok": true
+      },
+      {
+        "idx": 12,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction states 'unknown', failing to provide the specific goals (improve shooting percentage, win a championship) listed in the ground truth.\"\n}",
+        "in": 132,
+        "out": 45,
+        "ok": true
+      },
+      {
+        "idx": 13,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'unknown' fails to provide any of the specific goals listed in the ground truth (endorsements, brand building, charity work), resulting in a completely incorrect answer.\"\n}",
+        "in": 140,
+        "out": 53,
+        "ok": true
+      },
+      {
+        "idx": 14,
+        "response": "{\"score\": 0, \"reason\": \"The prediction fails to provide any of the required information listed in the ground truth.\"}",
+        "in": 128,
+        "out": 27,
+        "ok": true
+      },
+      {
+        "idx": 15,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'unknown' fails to provide the correct factual answer (2020) specified in the ground truth.\"}",
+        "in": 130,
+        "out": 35,
+        "ok": true
+      },
+      {
+        "idx": 16,
+        "response": "{\n  \"score\": 0,\n  \"reason\": \"The prediction 'not sure' fails to provide any factual information and does not answer the question, whereas the ground truth provides a specific timeframe.\"\n}",
+        "in": 139,
+        "out": 45,
+        "ok": true
+      },
+      {
+        "idx": 17,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'unknown' fails to provide any of the specific activities listed in the ground truth, resulting in a complete mismatch.\"}",
+        "in": 138,
+        "out": 36,
+        "ok": true
+      },
+      {
+        "idx": 18,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'recently' is a temporal adverb and does not answer the question about health problems. It is completely unrelated to the ground truth 'Obesity'.\"}",
+        "in": 122,
+        "out": 45,
+        "ok": true
+      },
+      {
+        "idx": 19,
+        "response": "{\"score\": 0, \"reason\": \"The prediction 'somewhere' is a location indicator, not a recreational activity, and does not match the ground truth 'bowling'.\"}",
+        "in": 132,
+        "out": 39,
+        "ok": true
+      }
+    ]
+  }
+}

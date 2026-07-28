@@ -70,6 +70,7 @@ python train_grpo.py \
     --data-file "./data/locomo10.json" \
     --bad-cases-file "./data/bad_cases_extended.json" \
     --model qwen-plus \
+    --judge-model qwen3.7-max \
     --api --api-base "${DASHSCOPE_API_BASE}" \
     --grpo-enabled \
     --grpo-group-size 8 \

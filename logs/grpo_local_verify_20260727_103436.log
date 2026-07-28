@@ -1,0 +1,12 @@
+
+================================================================================
+Initializing LLM Client...
+================================================================================
+Traceback (most recent call last):
+  File "/Users/zhaozhichen.1/MemSkill/train_grpo.py", line 296, in <module>
+    main()
+    ~~~~^^
+  File "/Users/zhaozhichen.1/MemSkill/train_grpo.py", line 121, in main
+    print(f"  Roles configured: {list(llm_client.configs.keys())}")
+                                      ^^^^^^^^^^^^^^^^^^
+AttributeError: 'LLMClient' object has no attribute 'configs'

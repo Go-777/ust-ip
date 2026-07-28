@@ -204,6 +204,14 @@ class GRPORewardComputer:
                 temp_memory_bank = MemoryBank.from_dict(memory_snapshot)
             except Exception as e:
                 logger.debug(f"[GRPOReward] Cannot rebuild memory bank: {e}")
+        else:
+            # Without memory bank snapshot, evaluation degrades to no-memory baseline
+            # which produces near-zero reward and wastes API calls
+            logger.warning(
+                f"[GRPOReward] Case missing 'memory_bank_snapshot' field "
+                f"(question: {question[:50]}...). Skipping evaluation."
+            )
+            return 0.0
 
         # --- Step 2: Skill selection ---
         candidate_ops = list(temp_op_bank.operations.values())
@@ -251,7 +259,11 @@ class GRPORewardComputer:
 
         # --- Step 5+6: QA evaluation with updated memory ---
         if self.config.reward_metric == "llm_judge":
-            reward = self._judge_reward(question, ground_truth, executor_response)
+            # Generate QA answer using updated memory, then judge it
+            qa_prediction = self._generate_qa_answer(
+                question, temp_memory_bank, retrieved_memories
+            )
+            reward = self._judge_reward(question, ground_truth, qa_prediction)
         else:
             reward = self._compute_qa_f1_reward(
                 question, ground_truth, temp_memory_bank, retrieved_memories
@@ -486,35 +498,36 @@ class GRPORewardComputer:
                             del memory_bank.memories[mi]
                             break
 
-    def _compute_qa_f1_reward(
+    def _generate_qa_answer(
         self,
         question: str,
-        ground_truth: str,
         memory_bank: 'MemoryBank',
         fallback_memories: list,
-    ) -> float:
-        """Compute QA F1 reward by generating an answer using updated memories.
+    ) -> str:
+        """Generate a QA answer using updated memories.
 
-        Pipeline:
-        1. Get context memories from updated memory bank
-        2. Build QA prompt with memories as context
-        3. Call LLM to generate answer
-        4. Compute token-level F1 against ground truth
+        Uses fallback_memories (pre-retrieved by question relevance) as the
+        primary context source to match real evaluation behavior. Only falls
+        back to memory_bank[:20] when no pre-retrieved memories are available.
 
         Args:
             question: The evaluation question
-            ground_truth: Expected answer
             memory_bank: Updated memory bank (or None)
-            fallback_memories: Original retrieved memories (used if no memory bank)
+            fallback_memories: Original retrieved memories from case (pre-retrieved
+                by question embedding, matching real eval pipeline)
 
         Returns:
-            F1 score (0.0 - 1.0)
+            Generated answer string (or empty string on failure)
         """
-        # Get context memories
-        if memory_bank is not None and len(memory_bank.memories) > 0:
+        # Prefer fallback_memories: these were retrieved by question relevance
+        # during case collection, matching the real evaluation retrieval pipeline.
+        # Only use raw memory_bank (insertion order) as last resort.
+        if fallback_memories:
+            context_memories = fallback_memories
+        elif memory_bank is not None and len(memory_bank.memories) > 0:
             context_memories = [m.content for m in memory_bank.memories[:20]]
         else:
-            context_memories = fallback_memories or []
+            context_memories = []
 
         # Build QA prompt
         if context_memories:
@@ -525,25 +538,48 @@ class GRPORewardComputer:
             context_str = "(No memories available)"
 
         qa_prompt = (
-            f"Answer the following question based on the provided memory context.\n\n"
+            f"Answer the following question based ONLY on the provided memory context. "
+            f"If the answer is not in the context, say 'I don't know'.\n\n"
             f"Memory Context:\n{context_str}\n\n"
             f"Question: {question}\n\n"
-            f"Answer concisely:"
+            f"Answer concisely and specifically:"
         )
 
-        # Generate answer
         try:
             prediction = self.llm_client.call(
                 role="executor",
                 prompt=qa_prompt,
                 temperature=0.0,
             )
+            return prediction.strip()
         except Exception as e:
             logger.warning(f"[GRPOReward] QA generation failed: {e}")
-            return 0.0
+            return ""
 
-        # Compute F1
-        return self._token_f1(prediction.strip(), ground_truth)
+    def _compute_qa_f1_reward(
+        self,
+        question: str,
+        ground_truth: str,
+        memory_bank: 'MemoryBank',
+        fallback_memories: list,
+    ) -> float:
+        """Compute QA F1 reward by generating an answer using updated memories.
+
+        Uses _generate_qa_answer for the QA step, then computes token-level F1.
+
+        Args:
+            question: The evaluation question
+            ground_truth: Expected answer
+            memory_bank: Updated memory bank (or None)
+            fallback_memories: Original retrieved memories (used if no memory bank)
+
+        Returns:
+            F1 score (0.0 - 1.0)
+        """
+        prediction = self._generate_qa_answer(question, memory_bank, fallback_memories)
+        if not prediction:
+            return 0.0
+        return self._token_f1(prediction, ground_truth)
 
     def _build_eval_prompt(
         self,
@@ -628,48 +664,82 @@ class GRPORewardComputer:
 
     @staticmethod
     def _single_f1(pred_tokens: list, gt_tokens: list) -> float:
-        """Compute F1 between two token lists."""
+        """Compute F1 between two token lists (SQuAD-standard Counter-based).
+
+        Uses Counter intersection to properly handle duplicate tokens.
+        Includes a verbosity penalty for short-answer QA: if the ground truth
+        is short (<=5 tokens) and the prediction is excessively long (>5x),
+        apply a mild penalty. This prevents verbose answers from trivially
+        matching a short ground truth token.
+        """
+        from collections import Counter
+
         if not pred_tokens or not gt_tokens:
             return 0.0
 
-        common = set(pred_tokens) & set(gt_tokens)
-        if not common:
+        pred_counter = Counter(pred_tokens)
+        gt_counter = Counter(gt_tokens)
+        common_count = sum((pred_counter & gt_counter).values())
+        if common_count == 0:
             return 0.0
 
-        precision = len(common) / len(pred_tokens)
-        recall = len(common) / len(gt_tokens)
-        return 2 * precision * recall / (precision + recall)
+        precision = common_count / len(pred_tokens)
+        recall = common_count / len(gt_tokens)
+        f1 = 2 * precision * recall / (precision + recall)
+
+        # Verbosity penalty: only for short-answer ground truths where
+        # prediction is excessively verbose (e.g., gt="yes" but pred is 50+ tokens).
+        # Guard: skip penalty if prediction is reasonably short (<=10 tokens absolute)
+        # to avoid punishing minor elaborations like "Yes, that is correct."
+        if len(gt_tokens) <= 5 and len(pred_tokens) > 10:
+            length_ratio = len(pred_tokens) / max(len(gt_tokens), 1)
+            if length_ratio > 8.0:
+                penalty = min(1.0, 8.0 / length_ratio)
+                f1 *= penalty
+
+        return f1
 
     def _judge_reward(
         self, question: str, ground_truth: str, prediction: str
     ) -> float:
-        """Use LLM Judge to score the QA response quality.
+        """Use LLM Judge to score QA response quality with strict grading.
 
-        5-point scale with few-shot examples for consistent scoring.
-        Evaluates whether the prediction correctly answers the question
-        compared to the ground truth.
+        Uses a 5-point scale with emphasis on EXACTNESS to ensure
+        different quality levels are properly distinguished.
+        Only a precise, specific answer matching ground truth gets full marks.
 
         Returns:
             Score normalized to 0.0 - 1.0 range
         """
         try:
             judge_prompt = (
-                "You are an evaluation judge. Score how well the Model Answer "
+                "You are a STRICT evaluation judge. Score how well the Model Answer "
                 "answers the Question compared to the Ground Truth.\n\n"
-                "Scoring criteria (1-5):\n"
-                "  5: Perfectly matches ground truth in meaning and key details\n"
-                "  4: Mostly correct with minor omissions or extra info\n"
-                "  3: Partially correct — captures some key facts but misses others\n"
-                "  2: Tangentially related but largely incorrect\n"
-                "  1: Completely wrong or irrelevant\n\n"
+                "Scoring criteria (1-5) — be strict, do NOT give 5 unless perfect:\n"
+                "  5: Exact match — contains the specific fact from ground truth with no errors\n"
+                "  4: Correct core answer but with minor imprecision (e.g., 'around 2022' vs '2022')\n"
+                "  3: Partially correct — right topic but missing key specifics\n"
+                "  2: Vague or generic answer that doesn't commit to specific facts\n"
+                "  1: Wrong, irrelevant, or 'I don't know'\n\n"
+                "IMPORTANT: Generic or hedging answers like 'recently', 'a while ago', "
+                "'possibly X' should score 2 or below. Only specific, committed answers "
+                "that match the ground truth earn 4-5.\n\n"
                 "Examples:\n"
-                "Q: What is Alice's job?\n"
-                "Ground Truth: software engineer\n"
-                "Model Answer: She works as a software engineer at Google.\n"
+                "Q: When did Bob move to NYC?\n"
+                "Ground Truth: March 2023\n"
+                "Model Answer: March 2023\n"
                 "Score: 5\n\n"
                 "Q: When did Bob move to NYC?\n"
                 "Ground Truth: March 2023\n"
+                "Model Answer: He moved to NYC in early 2023.\n"
+                "Score: 4\n\n"
+            "Q: When did Bob move to NYC?\n"
+                "Ground Truth: March 2023\n"
                 "Model Answer: Bob moved to a new city recently.\n"
+                "Score: 2\n\n"
+                "Q: What is Alice's job?\n"
+                "Ground Truth: software engineer\n"
+                "Model Answer: She works in tech.\n"
                 "Score: 2\n\n"
                 "---\n"
                 f"Question: {question}\n"
@@ -687,7 +757,7 @@ class GRPORewardComputer:
             match = re.search(r'\b([1-5])\b', response)
             if match:
                 score = int(match.group(1))
-                return (score - 1) / 4.0  #Normalize to 0.0-1.0
+                return (score - 1) / 4.0  # Normalize to 0.0-1.0
             # Fallback: check for decimal scores
             for val in ["1.0", "0.75", "0.5", "0.25", "0.0"]:
                 if val in response:
@@ -786,6 +856,7 @@ class GRPODataPreparer:
 
             # Compute rewards for each candidate
             rewards = []
+            parse_failures = 0
             for candidate_text in candidates:
                 parsed = self._parse_candidate(candidate_text)
                 if parsed:
@@ -796,7 +867,20 @@ class GRPODataPreparer:
                     )
                 else:
                     reward = 0.0
+                    parse_failures += 1
                 rewards.append(reward)
+
+            if parse_failures == len(candidates):
+                logger.warning(
+                    f"[GRPO] All {len(candidates)} candidates failed JSON parsing "
+                    f"for this chunk. Skipping sample (no valid reward signal)."
+                )
+                continue
+            elif parse_failures > 0:
+                logger.info(
+                    f"[GRPO] {parse_failures}/{len(candidates)} candidates "
+                    f"failed JSON parsing."
+                )
 
             sample = GRPOSample(
                 prompt=refinement_prompt,
@@ -930,6 +1014,7 @@ class GRPOTrainingLoop:
         self.iteration_history: List[Dict] = []
         self.best_avg_reward: float = 0.0
         self.no_improvement_count: int = 0
+        self._reward_metric: str = config.reward_metric  # Track metric for consistency check
 
     def run(
         self,
@@ -957,6 +1042,18 @@ class GRPOTrainingLoop:
         self.logger.info(
             f"[GRPOLoop] Starting iteration with {len(bad_cases)} bad cases"
         )
+
+        # Safety check: if reward_metric changed mid-training, reset baseline
+        # (f1 and llm_judge have different scales, comparison would be invalid)
+        current_metric = self.config.reward_metric
+        if current_metric != self._reward_metric:
+            self.logger.warning(
+                f"[GRPOLoop] reward_metric changed from '{self._reward_metric}' to "
+                f"'{current_metric}'. Resetting best_avg_reward baseline."
+            )
+            self.best_avg_reward = 0.0
+            self.no_improvement_count = 0
+            self._reward_metric = current_metric
 
         # Prepare GRPO batch (Stage1 + Stage2 + Rewards)
         samples = self.data_preparer.prepare_grpo_batch(
