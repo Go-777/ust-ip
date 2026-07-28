@@ -75,7 +75,7 @@ python train_grpo.py \
     --grpo-enabled \
     --grpo-group-size 8 \
     --grpo-max-iterations 50 \
-    --grpo-num-bad-cases 100 \
+    --grpo-num-bad-cases 20 \
     --grpo-case-chunk-size 5 \
     --grpo-temperature 0.7 \
     --grpo-max-designer-tokens 4096 \
