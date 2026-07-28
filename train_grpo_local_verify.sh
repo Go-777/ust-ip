@@ -3,14 +3,14 @@
 # 目标: 验证端到端pipeline逻辑，1次迭代，group_size=2，预计消耗 ~5K tokens
 #
 # 百炼API: https://dashscope.aliyuncs.com/compatible-mode/v1
-# 模型: qwen-plus (性价比高, 1M免费额度)
+# 模型: qwen3.7-plus (性价比高, 1M免费额度)
 
 export WANDB_MODE=offline
 export TOKENIZERS_PARALLELISM=false
 export HF_HUB_OFFLINE=1
 
 echo "=== GRPO Local CPU Verify: 1 iteration, group_size=2 ==="
-echo "Using: Dashscope API (qwen-plus, 1M free tokens)"
+echo "Using: Dashscope API (qwen3.7-plus, 1M free tokens)"
 echo "Start time: $(date)"
 echo ""
 
@@ -18,7 +18,7 @@ python train_grpo.py \
     --dataset locomo \
     --data-file "./data/locomo10.json" \
     --bad-cases-file "./data/bad_cases_mini.json" \
-    --model qwen-plus \
+    --model qwen3.7-plus \
     --api --api-base "https://dashscope.aliyuncs.com/compatible-mode/v1" \
     --api-key "REDACTED_API_KEY" \
     --grpo-enabled \
