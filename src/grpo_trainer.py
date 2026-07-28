@@ -233,6 +233,10 @@ class GRPORewardComputer:
             logger.warning(f"[GRPOReward] Skill selection failed: {e}")
             return 0.0
 
+        # [DEBUG] Print selected skill
+        selected_names = [op.name for op in selected_ops]
+        print(f"  [REWARD-DEBUG] Step2 selected skills: {selected_names}")
+
         # --- Step 3: Execute skill ---
         try:
             exec_prompt = self._build_eval_prompt(
@@ -247,15 +251,23 @@ class GRPORewardComputer:
             logger.warning(f"[GRPOReward] Executor call failed: {e}")
             return 0.0
 
+        # [DEBUG] Print executor response (first 500 chars)
+        print(f"  [REWARD-DEBUG] Step3 executor response: {executor_response[:500]}")
+
         # --- Step 4: Apply executor results to memory bank ---
+        mem_count_before = len(temp_memory_bank.memories) if temp_memory_bank else 0
         if temp_memory_bank is not None:
             try:
                 exec_results = self._parse_executor_response(executor_response)
+                print(f"  [REWARD-DEBUG] Step4 parsed {len(exec_results)} results: {[(r.action_type, r.memory_content[:80] if r.memory_content else '') for r in exec_results]}")
                 self._apply_results_to_memory(
                     exec_results, temp_memory_bank, retrieved_memories
                 )
             except Exception as e:
-                logger.debug(f"[GRPOReward] Apply results failed: {e}")
+                print(f"  [REWARD-DEBUG] Step4 apply FAILED: {e}")
+
+        mem_count_after = len(temp_memory_bank.memories) if temp_memory_bank else 0
+        print(f"  [REWARD-DEBUG] Step4 memory count: {mem_count_before} -> {mem_count_after}")
 
         # --- Step 5+6: QA evaluation with updated memory ---
         if self.config.reward_metric == "llm_judge":
@@ -268,6 +280,13 @@ class GRPORewardComputer:
             reward = self._compute_qa_f1_reward(
                 question, ground_truth, temp_memory_bank, retrieved_memories
             )
+
+        # [DEBUG] Print QA result
+        print(f"  [REWARD-DEBUG] Step5+6 question: {question[:80]}")
+        print(f"  [REWARD-DEBUG] Step5+6 ground_truth: {ground_truth}")
+        print(f"  [REWARD-DEBUG] Step5+6 reward_metric: {self.config.reward_metric}")
+        print(f"  [REWARD-DEBUG] Step5+6 reward: {reward}")
+        print(f"  ---")
 
         return reward
 
