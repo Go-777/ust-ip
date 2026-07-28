@@ -506,28 +506,38 @@ class GRPORewardComputer:
     ) -> str:
         """Generate a QA answer using updated memories.
 
-        Uses fallback_memories (pre-retrieved by question relevance) as the
-        primary context source to match real evaluation behavior. Only falls
-        back to memory_bank[:20] when no pre-retrieved memories are available.
+        Combines fallback_memories (pre-retrieved from case) with any NEW memories
+        added to memory_bank during Step 4 (executor apply). This ensures that
+        skill improvements that insert better memories into the bank actually
+        affect the QA answer and produce differentiated rewards.
 
         Args:
             question: The evaluation question
-            memory_bank: Updated memory bank (or None)
+            memory_bank: Updated memory bank (may contain new memories from Step 4)
             fallback_memories: Original retrieved memories from case (pre-retrieved
-                by question embedding, matching real eval pipeline)
+               by question embedding, matching real eval pipeline)
 
         Returns:
             Generated answer string (or empty string on failure)
         """
-        # Prefer fallback_memories: these were retrieved by question relevance
-        # during case collection, matching the real evaluation retrieval pipeline.
-        # Only use raw memory_bank (insertion order) as last resort.
+        context_memories = []
+
+        # Start with fallback_memories (pre-retrieved by question relevance)
         if fallback_memories:
-            context_memories = fallback_memories
-        elif memory_bank is not None and len(memory_bank.memories) > 0:
-            context_memories = [m.content for m in memory_bank.memories[:20]]
-        else:
-            context_memories = []
+            context_memories = list(fallback_memories)
+
+        # ALSO include memories from the updated memory_bank that were added
+        # by the executor in Step 4. This is the key mechanism that allows
+        # skill improvements to produce differentiated rewards.
+        if memory_bank is not None and len(memory_bank.memories) > 0:
+            existing_set = set(context_memories)
+            for mem in memory_bank.memories[:20]:
+                if mem.content not in existing_set:
+                    context_memories.append(mem.content)
+                    existing_set.add(mem.content)
+
+        # Limit total context to avoid token overflow
+        context_memories = context_memories[:20]
 
         # Build QA prompt
         if context_memories:

@@ -220,6 +220,17 @@ Propose ONE concrete skill change. Output JSON with:
 - "instruction_template": the LLM instruction template for this skill
 - "update_type": "insert" or "update" or "delete"
 
+## CRITICAL CONSTRAINTS for instruction_template:
+1. The skill's instruction_template MUST instruct the executor to output actions using ONLY these standard action types: INSERT, UPDATE, DELETE, or NOOP.
+2. The executor output format MUST follow this structure:
+   ACTION: INSERT/UPDATE/DELETE/NOOP
+   MEMORY_ITEM: <content to store>  (for INSERT)
+   MEMORY_INDEX: <index>  (for UPDATE/DELETE)
+   UPDATED_MEMORY: <new content>  (for UPDATE)
+   REASONING: <why this action>
+3. Do NOT invent new action types (e.g., no "STRUCTURE_AND_ENRICH", no "PRE-PROCESSING").
+4. Any preprocessing logic (temporal normalization, fact extraction, etc.) should be described as STEPS within the skill that produce a final INSERT/UPDATE/DELETE action — not as a separate action type.
+
 Output ONLY valid JSON."""
 
     # ========== 6. Run GRPO Training Loop ==========
