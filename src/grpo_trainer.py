@@ -1240,7 +1240,7 @@ class GRPOTrainingLoop:
                 if "instruction_template" in candidate:
                     op.instruction_template = candidate["instruction_template"]
                 # Update meta_info with reward
-                op.record_usage(reward)
+                op.update_stats(reward)
                 op.meta_info["last_modified"] = f"grpo_iter_{len(self.iteration_history)}"
                 self.logger.info(f"[GRPOLoop] Refined skill: {target} (reward={reward:.4f})")
                 return
@@ -1252,7 +1252,7 @@ class GRPOTrainingLoop:
             instruction_template=candidate.get("instruction_template", ""),
             update_type=candidate.get("update_type", "insert"),
         )
-        new_op.record_usage(reward)
+        new_op.update_stats(reward)
         new_op.meta_info["created_at"] = f"grpo_iter_{len(self.iteration_history)}"
         new_op.meta_info["last_modified"] = f"grpo_iter_{len(self.iteration_history)}"
         self.operation_bank.operations[new_op.name] = new_op
