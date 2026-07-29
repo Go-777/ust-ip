@@ -103,6 +103,8 @@ class AgenticMemoryConfig:
         self.grpo_early_stop_patience = 5  # Stop if no improvement for N iterations
         self.grpo_case_chunk_size = 5  # Number of cases per analysis batch
         self.grpo_export_dir = "./grpo_data"  # Directory for OpenRLHF export data
+        self.grpo_min_apply_threshold = 0.3  # Apply best candidate if best_reward > this
+        self.grpo_max_parse_retries = 1  # Max retries per candidate on parse failure
 
         # LLM Client settings (new architecture: role-based model assignment)
         # Model configuration (base URLs default to None; --api-base is used as fallback)
@@ -394,6 +396,10 @@ def get_agentic_memory_args():
                         help='Number of cases per analysis batch')
     parser.add_argument('--grpo-export-dir', type=str, default='./grpo_data',
                         help='Directory for OpenRLHF export data')
+    parser.add_argument('--grpo-min-apply-threshold', type=float, default=0.3,
+                        help='Apply best candidate if best_reward > this threshold')
+    parser.add_argument('--grpo-max-parse-retries', type=int, default=1,
+                        help='Max retries per candidate on parse failure')
     parser.add_argument('--bad-cases-file', type=str, default=None,
                         help='Path to bad cases JSON/JSONL file for GRPO training')
 

@@ -92,6 +92,8 @@ def build_grpo_config_from_args(args, config: AgenticMemoryConfig) -> GRPOConfig
         early_stop_patience=getattr(config, "grpo_early_stop_patience", 5),
         case_chunk_size=getattr(config, "grpo_case_chunk_size", 5),
         export_dir=getattr(config, "grpo_export_dir", "./grpo_data"),
+        min_apply_threshold=getattr(config, "grpo_min_apply_threshold", 0.3),
+        max_parse_retries=getattr(config, "grpo_max_parse_retries", 1),
     )
 
 
@@ -211,6 +213,12 @@ Output ONLY valid JSON."""
 ## Current Skills
 {current_skills}
 
+## Evolution History (last 3 iterations)
+{evolution_history}
+
+## Current Skill Usage Statistics
+{skill_usage_stats}
+
 ## Instructions
 Propose ONE concrete skill change. Output JSON with:
 - "action": "add_new" or "refine"
@@ -226,6 +234,8 @@ Propose ONE concrete skill change. Output JSON with:
 - If failures involve missing information, consider refining "insert" skill.
 - If failures involve noise/contradictions in memory, consider refining "delete" skill.
 - You may also propose "add_new" to create a specialized skill for a specific failure pattern.
+- CHECK the Evolution History above — avoid repeating the same change as recent iterations.
+- CHECK the Usage Statistics above — prioritize skills with 0 or low usage.
 
 ## CRITICAL CONSTRAINTS for instruction_template:
 1. The skill's instruction_template MUST instruct the executor to output actions using ONLY these standard action types: INSERT, UPDATE, DELETE, or NOOP.
@@ -273,12 +283,16 @@ Output ONLY valid JSON."""
         )
 
         if result and result.get("improved"):
-            print(f"  Best reward: {result.get('best_reward', 0):.4f}")
-            print(f"  Avg reward: {result.get('avg_reward', 0):.4f}")
-            print(f"  Improved: True")
+            print(f"  ✓ Best reward: {result.get('best_reward', 0):.4f}")
+            print(f"  ✓ Avg reward: {result.get('avg_reward', 0):.4f}")
+            print(f"  ✓ New best avg! (improved=True)")
+        elif result and result.get("best_candidate"):
+            print(f"  → Best reward: {result.get('best_reward', 0):.4f}")
+            print(f"  → Avg reward: {result.get('avg_reward', 0):.4f}")
+            print(f"  → Applied (threshold-based, improved=False)")
         else:
             avg_r = result.get("avg_reward", 0) if result else 0
-            print(f"  Avg reward: {avg_r:.4f}, no improvement.")
+            print(f"  ✗ Avg reward: {avg_r:.4f}, no candidate applied.")
 
         # Collect samples for final export
         if result and result.get("samples"):

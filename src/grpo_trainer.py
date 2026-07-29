@@ -46,6 +46,8 @@ class GRPOConfig:
     early_stop_patience: int = 5  # Stop if no improvement for N iterations
     case_chunk_size: int = 5  # Number of bad cases per analysis batch
     export_dir: str = "./grpo_data"  # Directory for exported GRPO data
+    min_apply_threshold: float = 0.3  # Apply best candidate if best_reward > this threshold
+    max_parse_retries: int = 1  # Max retries per candidate on parse failure
 
 
 @dataclass
@@ -876,6 +878,8 @@ class GRPODataPreparer:
         operation_bank: OperationBank,
         analysis_prompt_template: str,
         refinement_prompt_template: str,
+        evolution_history: str = "No previous changes.",
+        skill_usage_stats: str = "",
     ) -> List[GRPOSample]:
         """
         Prepare a batch of GRPO training samples.
@@ -924,6 +928,8 @@ class GRPODataPreparer:
                     ensure_ascii=False,
                     indent=2,
                 ),
+                evolution_history=evolution_history,
+                skill_usage_stats=skill_usage_stats,
             )
 
             try:
@@ -949,6 +955,31 @@ class GRPODataPreparer:
             parse_failures = 0
             for candidate_text in candidates:
                 parsed = self._parse_candidate(candidate_text)
+
+                # Retry on parse failure (re-sample single candidate)
+                if not parsed and self.config.max_parse_retries > 0:
+                    for retry_i in range(self.config.max_parse_retries):
+                        logger.info(
+                            f"[GRPO] Parse retry {retry_i + 1}/{self.config.max_parse_retries}"
+                        )
+                        print(f"  [GRPO-DEBUG] Parse retry {retry_i + 1}")
+                        try:
+                            retry_text = self.llm_client.call(
+                                role="designer",
+                                prompt=refinement_prompt,
+                                temperature=self.config.temperature + 0.1,
+                                n=1,
+                            )
+                            if isinstance(retry_text, list):
+                                retry_text = retry_text[0]
+                            parsed = self._parse_candidate(retry_text)
+                            if parsed:
+                                candidate_text = retry_text  # Update for export
+                                print(f"  [GRPO-DEBUG] Parse retry succeeded!")
+                                break
+                        except Exception as e:
+                            logger.warning(f"[GRPO] Parse retry failed: {e}")
+
                 if parsed:
                     print(f"  [GRPO-DEBUG] Parsed OK: name={parsed.get('name')}, action={parsed.get('action')}, update_type={parsed.get('update_type')}")
                     reward = self.reward_computer.compute_reward_for_candidate(
@@ -960,7 +991,7 @@ class GRPODataPreparer:
                 else:
                     reward = 0.0
                     parse_failures += 1
-                    print(f"  [GRPO-DEBUG] Parse FAILED for candidate: {candidate_text[:200]}")
+                    print(f"  [GRPO-DEBUG] Parse FAILED (after retries) for candidate: {candidate_text[:200]}")
                 rewards.append(reward)
 
             if parse_failures == len(candidates):
@@ -1149,11 +1180,18 @@ class GRPOTrainingLoop:
             self._reward_metric = current_metric
 
         # Prepare GRPO batch (Stage1 + Stage2 + Rewards)
+        evolution_history = self._build_evolution_history()
+        skill_usage_stats = self._build_skill_usage_stats()
+        self.logger.info(f"[GRPOLoop] Evolution history: {evolution_history}")
+        self.logger.info(f"[GRPOLoop] Skill usage stats: {skill_usage_stats}")
+
         samples = self.data_preparer.prepare_grpo_batch(
             bad_cases=bad_cases,
             operation_bank=self.operation_bank,
             analysis_prompt_template=analysis_prompt_template,
             refinement_prompt_template=refinement_prompt_template,
+            evolution_history=evolution_history,
+            skill_usage_stats=skill_usage_stats,
         )
 
         if not samples:
@@ -1186,7 +1224,7 @@ class GRPOTrainingLoop:
 
         avg_reward = float(np.mean(all_rewards)) if all_rewards else 0.0
 
-        # Check if improved
+        # Check if improved (for early_stop tracking)
         improved = avg_reward > self.best_avg_reward
         if improved:
             self.best_avg_reward = avg_reward
@@ -1194,12 +1232,23 @@ class GRPOTrainingLoop:
         else:
             self.no_improvement_count += 1
 
-        # Apply best candidate to operation bank if improved
+        # Apply best candidate if best_reward exceeds threshold
+        # (Decoupled from 'improved' — allows continuous skill evolution)
+        should_apply = best_reward > self.config.min_apply_threshold
         best_candidate_parsed = None
-        if best_candidate_text and improved:
+        if best_candidate_text and should_apply:
             best_candidate_parsed = self.data_preparer._parse_candidate(best_candidate_text)
             if best_candidate_parsed:
                 self._apply_best_candidate(best_candidate_parsed, reward=best_reward)
+                self.logger.info(
+                    f"[GRPOLoop] Applied candidate (best_reward={best_reward:.4f} > "
+                    f"threshold={self.config.min_apply_threshold})"
+                )
+        elif best_candidate_text and not should_apply:
+            self.logger.info(
+                f"[GRPOLoop] Skipped apply: best_reward={best_reward:.4f} <= "
+                f"threshold={self.config.min_apply_threshold}"
+            )
 
         # Export for OpenRLHF if requested
         if export_dir:
@@ -1257,6 +1306,53 @@ class GRPOTrainingLoop:
         new_op.meta_info["last_modified"] = f"grpo_iter_{len(self.iteration_history)}"
         self.operation_bank.operations[new_op.name] = new_op
         self.logger.info(f"[GRPOLoop] Added new skill: {new_op.name} (reward={reward:.4f})")
+
+    def _build_evolution_history(self) -> str:
+        """Build a summary of recent evolution changes for prompt injection.
+
+        Returns a string describing the last 3 iterations' applied changes,
+        so the LLM can avoid repeating the same refinements.
+        """
+        history_lines = []
+        for i, h in enumerate(self.iteration_history[-3:]):
+            iter_idx = len(self.iteration_history) - 3 + i
+            if iter_idx < 0:
+                continue
+            candidate = h.get("best_candidate")
+            if candidate:
+                action = candidate.get("action", "add_new")
+                name = candidate.get("name", "unknown")
+                update_type = candidate.get("update_type", "?")
+                reward = h.get("best_reward", 0)
+                history_lines.append(
+                    f"- Iter {iter_idx}: {action} '{name}' "
+                    f"(type={update_type}, reward={reward:.2f})"
+                )
+            else:
+                avg_r = h.get("avg_reward", 0)
+                history_lines.append(
+                    f"- Iter {iter_idx}: no candidate applied (avg_reward={avg_r:.2f})"
+                )
+        return "\n".join(history_lines) if history_lines else "No previous changes."
+
+    def _build_skill_usage_stats(self) -> str:
+        """Build current skill usage statistics for prompt injection.
+
+        Returns a string showing each skill's usage count and avg reward,
+        so the LLM can prioritize under-explored skills.
+        """
+        stats_parts = []
+        for name, op in self.operation_bank.operations.items():
+            usage = getattr(op, 'usage_count', 0)
+            avg_r = getattr(op, 'avg_reward', 0.0)
+            stats_parts.append(f"{name}: {usage} uses (avg_reward={avg_r:.2f})")
+        stats_str = " | ".join(stats_parts)
+        # Add guidance
+        zero_usage = [name for name, op in self.operation_bank.operations.items()
+                      if getattr(op, 'usage_count', 0) == 0]
+        if zero_usage:
+            stats_str += f"\n⚠️ Under-explored skills: {', '.join(zero_usage)}. Prioritize these!"
+        return stats_str
 
     def should_stop(self) -> bool:
         """Check if training should stop."""
