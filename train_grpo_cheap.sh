@@ -1,10 +1,9 @@
 #!/bin/bash
-# MemSkill GRPO 实验 (接近原方案效果，Judge降一级)
-# 原方案: Selector/Executor=Plus, Designer=本地9B, Judge=Max
-# 当前方案: Selector=Flash, Executor=Plus, Designer=Plus, Judge=Plus
-# 变化: Judge Max→Plus (省最多); Selector Plus→Flash (任务简单)
-# 预估成本: ¥100-150 (全量50 iterations)
-# 预估时间: 4-6小时
+# MemSkill GRPO 实验 — 小批量验证 (免费额度模型)
+# Judge=qwen3.7-max (最强, 1M免费), Designer=qwen3.7-max (1M免费)
+# Executor=qwen3.5-plus (1M免费), Selector=qwen3.5-flash (1M免费)
+# 验证目标: 2-3 iterations确认代码流程正确、reward有产出
+# 验证通过后切换到大规模配置
 
 export DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}"
@@ -12,14 +11,14 @@ export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}
 python train_grpo.py \
     --grpo-enabled \
     --bad-cases-file "./data/bad_cases_extended.json" \
-    --model qwen3.5-flash \
-    --selector-model qwen3.5-flash \
-    --executor-model qwen3.5-plus \
-    --designer-local-model qwen3.7-plus \
-    --judge-model qwen3.5-plus \
+    --model qwen3.5-flash-2026-02-23 \
+    --selector-model qwen3.5-flash-2026-02-23 \
+    --executor-model qwen3.5-plus-2026-02-15 \
+    --designer-model qwen3.7-max-2026-05-20 \
+    --judge-model qwen3.7-max-2026-05-17 \
     --grpo-group-size 4 \
-    --grpo-max-iterations 50 \
-    --grpo-num-bad-cases 20 \
+    --grpo-max-iterations 3 \
+    --grpo-num-bad-cases 10 \
     --grpo-case-chunk-size 5 \
     --grpo-early-stop-patience 15 \
     --grpo-early-stop-warmup 10 \
