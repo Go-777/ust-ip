@@ -7,21 +7,17 @@
 #   本地Mac: nohup bash train_mini_explore.sh &
 #   查看进度: tail -f logs/grpo_mini_explore_*.log
 #
-# 预计运行时间: 15-25分钟 (~290次API调用, 3-5s/次)
+# 预计运行时间: 10-15分钟 (~60次API调用, qwen3-max)
 # ============================================================
 # 目标: 跑完一段完整的多轮迭代轨迹，观察:
 #   1. reward是否能从0开始出现分化
 #   2. 迭代间reward是否有上升趋势
 #   3. 最终生成的skill改进是否合理
 #
-# 参数选择依据 (基于昨天用量):
-#   - 昨天 local_verify: 1轮×2组×4case = ~29K tokens
-#   - 本次: 5轮×3组×6case ≈ 5×3×(29K/1/2/4)×6 ≈ 130K tokens
-#   - 预算: qwen3.5-flash剩余971K tokens, 本次预计用 ~150K tokens (留大量余量)
-#
-# 模型: qwen3.5-flash (主pipeline) + qwen3-max (judge reward)
-# 预计耗时: 45-60分钟 (~290次API调用, plus/max模型响应较慢)
-# 预计消耗: ~150K tokens (占剩余额度 ~15%)
+# 参数: 2轮, group_size=2, 3 bad_cases, chunk_size=3
+# 模型: qwen3-max (主pipeline + judge)
+# 预计耗时: 10-15分钟 (~60次API调用)
+# 预计消耗: ~50K tokens
 # ============================================================
 
 export WANDB_MODE=offline
@@ -41,7 +37,7 @@ LOG_FILE="logs/grpo_mini_explore_${TIMESTAMP}.log"
 mkdir -p logs "${SAVE_DIR}" "${EXPORT_DIR}"
 
 echo "============================================================" | tee "${LOG_FILE}"
-echo "  MemSkill GRPO Mini Explore (qwen3.5-flash + qwen3-max)" | tee -a "${LOG_FILE}"
+echo "  MemSkill GRPO Mini Explore (qwen3-max)" | tee -a "${LOG_FILE}"
 echo "  Start: $(date)" | tee -a "${LOG_FILE}"
 echo "  Parameters:" | tee -a "${LOG_FILE}"
 echo "    - iterations: 5 (enough to see trend)" | tee -a "${LOG_FILE}"
@@ -55,14 +51,14 @@ python train_grpo.py \
     --dataset locomo \
     --data-file "./data/locomo10.json" \
     --bad-cases-file "./data/bad_cases_extended.json" \
-    --model qwen3.5-flash \
+    --model qwen3-max \
     --judge-model qwen3-max \
     --api --api-base "${DASHSCOPE_API_BASE}" \
     --api-key "${DASHSCOPE_API_KEY}" \
     --grpo-enabled \
-    --grpo-group-size 3 \
-    --grpo-max-iterations 5 \
-    --grpo-num-bad-cases 6 \
+    --grpo-group-size 2 \
+    --grpo-max-iterations 2 \
+    --grpo-num-bad-cases 3 \
     --grpo-case-chunk-size 3 \
     --grpo-temperature 0.7 \
     --grpo-max-designer-tokens 2048 \
