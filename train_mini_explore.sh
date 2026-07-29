@@ -51,7 +51,7 @@ python train_grpo.py \
     --dataset locomo \
     --data-file "./data/locomo10.json" \
     --bad-cases-file "./data/bad_cases_extended.json" \
-    --model qwen3-max \
+    --model qwen3.6-plus \
     --judge-model qwen3-max \
     --api --api-base "${DASHSCOPE_API_BASE}" \
     --api-key "${DASHSCOPE_API_KEY}" \
