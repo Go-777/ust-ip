@@ -51,8 +51,11 @@ python train_grpo.py \
     --dataset locomo \
     --data-file "./data/locomo10.json" \
     --bad-cases-file "./data/bad_cases_extended.json" \
-    --model qwen3.6-plus \
-    --judge-model qwen3-max \
+    --model qwen3.7-flash \
+    --selector-model qwen3.7-flash-2026-07-15 \
+    --executor-model qwen3.5-plus-2026-04-20 \
+    --designer-local-model qwen3.7-plus-2026-05-26 \
+    --judge-model qwen3.7-max-2026-06-08 \
     --api --api-base "${DASHSCOPE_API_BASE}" \
     --api-key "${DASHSCOPE_API_KEY}" \
     --grpo-enabled \
