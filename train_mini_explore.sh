@@ -1,23 +1,15 @@
 #!/bin/bash
 # ============================================================
-# MemSkill GRPO 小批量完整探索实验
+# MemSkill GRPO 小批量完整探索实验 (v3 - bugfix)
 # ============================================================
-# 运行方式 (不怕熄屏中断):
-#   SuperPod: sbatch train_mini_explore.sh
-#   本地Mac: nohup bash train_mini_explore.sh &
+# 运行方式:
+#   SuperPod: nohup bash train_mini_explore.sh &
 #   查看进度: tail -f logs/grpo_mini_explore_*.log
 #
-# 预计运行时间: 10-15分钟 (~60次API调用, qwen3-max)
-# ============================================================
-# 目标: 跑完一段完整的多轮迭代轨迹，观察:
-#   1. reward是否能从0开始出现分化
-#   2. 迭代间reward是否有上升趋势
-#   3. 最终生成的skill改进是否合理
-#
-# 参数: 2轮, group_size=2, 3 bad_cases, chunk_size=3
-# 模型: qwen3-max (主pipeline + judge)
-# 预计耗时: 10-15分钟 (~60次API调用)
-# 预计消耗: ~50K tokens
+# 修复: record_usage -> update_stats
+# 参数: 3轮, group_size=4, 6 bad_cases, chunk_size=3, temp=0.9
+# 模型: qwen3.7-flash(主) + 各角色独立模型(分散额度)
+# 预计耗时: 20-30分钟
 # ============================================================
 
 export WANDB_MODE=offline
@@ -37,14 +29,14 @@ LOG_FILE="logs/grpo_mini_explore_${TIMESTAMP}.log"
 mkdir -p logs "${SAVE_DIR}" "${EXPORT_DIR}"
 
 echo "============================================================" | tee "${LOG_FILE}"
-echo "  MemSkill GRPO Mini Explore (qwen3-max)" | tee -a "${LOG_FILE}"
+echo "  MemSkill GRPO Mini Explore v3 (bugfix: update_stats)" | tee -a "${LOG_FILE}"
 echo "  Start: $(date)" | tee -a "${LOG_FILE}"
 echo "  Parameters:" | tee -a "${LOG_FILE}"
-echo "    - iterations: 5 (enough to see trend)" | tee -a "${LOG_FILE}"
-echo "    - group_size: 3 (min for meaningful comparison)" | tee -a "${LOG_FILE}"
-echo "    - bad_cases: 6 (small but diverse)" | tee -a "${LOG_FILE}"
-echo "    - chunk_size: 3 (2 chunks per iteration)" | tee -a "${LOG_FILE}"
-echo "    - reward: llm_judge (qwen3-max, strongest signal)" | tee -a "${LOG_FILE}"
+echo "    - iterations: 3" | tee -a "${LOG_FILE}"
+echo "    - group_size: 4, temperature: 0.9" | tee -a "${LOG_FILE}"
+echo "    - bad_cases: 6, chunk_size: 3" | tee -a "${LOG_FILE}"
+echo "    - judge: qwen3.7-max-2026-06-08" | tee -a "${LOG_FILE}"
+echo "    - fix: record_usage -> update_stats" | tee -a "${LOG_FILE}"
 echo "============================================================" | tee -a "${LOG_FILE}"
 
 python train_grpo.py \
