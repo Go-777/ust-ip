@@ -20,7 +20,7 @@ python train_grpo.py \
     --bad-cases-file "./data/bad_cases_mini.json" \
     --model qwen3.7-plus \
     --api --api-base "https://dashscope.aliyuncs.com/compatible-mode/v1" \
-    --api-key "REDACTED_API_KEY" \
+    --api-key "${DASHSCOPE_API_KEY}" \
     --grpo-enabled \
     --grpo-group-size 2 \
     --grpo-max-iterations 1 \

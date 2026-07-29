@@ -8,7 +8,9 @@ eval "$(conda shell.bash hook)"
 conda activate memskill
 
 export DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export DASHSCOPE_API_KEY='REDACTED_API_KEY'
+# API Key: set via environment or uncomment below
+# export DASHSCOPE_API_KEY='your-key-here'
+export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}"
 
 mkdir -p logs checkpoints/grpo_full grpo_data/full
 

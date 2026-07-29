@@ -36,7 +36,9 @@ export CUDA_VISIBLE_DEVICES=0
 
 # 百炼API配置 (通过环境变量传递，避免shell特殊字符问题)
 export DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export DASHSCOPE_API_KEY='REDACTED_API_KEY'
+# API Key: set via environment or uncomment below
+# export DASHSCOPE_API_KEY='your-key-here'
+export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}"
 
 # 项目目录
 cd ~/ust-ip
