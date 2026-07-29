@@ -106,13 +106,13 @@ class AgenticMemoryConfig:
 
         # LLM Client settings (new architecture: role-based model assignment)
         # Model configuration (base URLs default to None; --api-base is used as fallback)
-        self.selector_model = "qwen3.5-plus"  # Skill Selector model
+        self.selector_model = "qwen3.5-flash"  # Skill Selector model
         self.selector_api_base = None
-        self.executor_model = "qwen3.5-plus"  # Executor model
+        self.executor_model = "qwen3.5-flash"  # Executor model
         self.executor_api_base = None
         self.judge_model = "qwen3-max"  # QA Judge model (strongest for reward signal)
         self.judge_api_base = None
-        self.designer_local_model = "qwen3.5-plus"  # Designer model
+        self.designer_local_model = "qwen3.5-flash"  # Designer model
         self.designer_api_base = None
         self.dashscope_api_keys = []  # API keys for DashScope
 
@@ -398,11 +398,11 @@ def get_agentic_memory_args():
                         help='Path to bad cases JSON/JSONL file for GRPO training')
 
     # LLM Client args (new architecture)
-    parser.add_argument('--selector-model', type=str, default='qwen3.5-plus',
+    parser.add_argument('--selector-model', type=str, default='qwen3.5-flash',
                         help='Model name for Skill Selector')
     parser.add_argument('--selector-api-base', type=str, default=None,
                         help='API base URL for Selector (defaults to --api-base)')
-    parser.add_argument('--executor-model', type=str, default='qwen3.5-plus',
+    parser.add_argument('--executor-model', type=str, default='qwen3.5-flash',
                         help='Model name for Executor')
     parser.add_argument('--executor-api-base', type=str, default=None,
                         help='API base URL for Executor (defaults to --api-base)')
@@ -410,7 +410,7 @@ def get_agentic_memory_args():
                         help='Model name for QA Judge (strongest model for reward signal)')
     parser.add_argument('--judge-api-base', type=str, default=None,
                         help='API base URL for Judge (defaults to --api-base)')
-    parser.add_argument('--designer-local-model', type=str, default='qwen3.5-plus',
+    parser.add_argument('--designer-local-model', type=str, default='qwen3.5-flash',
                         help='Model for Designer')
     parser.add_argument('--designer-api-base', type=str, default=None,
                         help='API base URL for Designer model (defaults to --api-base)')

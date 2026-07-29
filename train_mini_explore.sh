@@ -17,9 +17,9 @@
 # 参数选择依据 (基于昨天用量):
 #   - 昨天 local_verify: 1轮×2组×4case = ~29K tokens
 #   - 本次: 5轮×3组×6case ≈ 5×3×(29K/1/2/4)×6 ≈ 130K tokens
-#   - 预算: qwen3.5-plus剩余971K tokens, 本次预计用 ~150K tokens (留大量余量)
+#   - 预算: qwen3.5-flash剩余971K tokens, 本次预计用 ~150K tokens (留大量余量)
 #
-# 模型: qwen3.5-plus (主pipeline) + qwen3-max (judge reward)
+# 模型: qwen3.5-flash (主pipeline) + qwen3-max (judge reward)
 # 预计耗时: 45-60分钟 (~290次API调用, plus/max模型响应较慢)
 # 预计消耗: ~150K tokens (占剩余额度 ~15%)
 # ============================================================
@@ -41,7 +41,7 @@ LOG_FILE="logs/grpo_mini_explore_${TIMESTAMP}.log"
 mkdir -p logs "${SAVE_DIR}" "${EXPORT_DIR}"
 
 echo "============================================================" | tee "${LOG_FILE}"
-echo "  MemSkill GRPO Mini Explore (qwen3.5-plus + qwen3-max)" | tee -a "${LOG_FILE}"
+echo "  MemSkill GRPO Mini Explore (qwen3.5-flash + qwen3-max)" | tee -a "${LOG_FILE}"
 echo "  Start: $(date)" | tee -a "${LOG_FILE}"
 echo "  Parameters:" | tee -a "${LOG_FILE}"
 echo "    - iterations: 5 (enough to see trend)" | tee -a "${LOG_FILE}"
@@ -55,7 +55,7 @@ python train_grpo.py \
     --dataset locomo \
     --data-file "./data/locomo10.json" \
     --bad-cases-file "./data/bad_cases_extended.json" \
-    --model qwen3.5-plus \
+    --model qwen3.5-flash \
     --judge-model qwen3-max \
     --api --api-base "${DASHSCOPE_API_BASE}" \
     --api-key "${DASHSCOPE_API_KEY}" \
