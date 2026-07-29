@@ -22,7 +22,7 @@
 #
 # 资源预估:
 #   - GPU: 无 (纯API调用，无本地推理)
-#   - API调用: 百炼 qwen3.7-plus (~50次迭代 × 8组 = ~400次)
+#   - API调用: 百炼 qwen3.5-plus (~50次迭代 × 8组 = ~400次)
 #   - 时间: ~4-6小时 (视API延迟)
 #   - CPU: 16 cores, 32GB RAM
 # ============================================================
@@ -70,8 +70,8 @@ python train_grpo.py \
     --dataset locomo \
     --data-file "./data/locomo10.json" \
     --bad-cases-file "./data/bad_cases_extended.json" \
-    --model qwen3.7-plus \
-    --judge-model qwen3.7-max \
+    --model qwen3.5-plus \
+    --judge-model qwen3-max \
     --api --api-base "${DASHSCOPE_API_BASE}" \
     --grpo-enabled \
     --grpo-group-size 8 \

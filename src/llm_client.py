@@ -62,25 +62,25 @@ DEFAULT_API_BASE_URL = os.environ.get(
 
 ROLE_DEFAULTS = {
     "selector": ModelConfig(
-        model_name="qwen3.7-plus",
+        model_name="qwen3.5-plus",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=2048,
         temperature=0.0,
     ),
     "executor": ModelConfig(
-        model_name="qwen3.7-plus",
+        model_name="qwen3.5-plus",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=2048,
         temperature=0.0,
     ),
     "judge": ModelConfig(
-        model_name="qwen3.7-max",
+        model_name="qwen3-max",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=1024,
         temperature=0.0,
     ),
     "designer": ModelConfig(
-        model_name="qwen3.7-plus",
+        model_name="qwen3.5-plus",
         base_url=DEFAULT_API_BASE_URL,
         max_tokens=4096,
         temperature=0.0,
@@ -397,7 +397,7 @@ def create_llm_client_from_args(args) -> LLMClient:
 
     # Build role configs from args
     # Default model: use --model arg as fallback for all roles
-    default_model = getattr(args, "model", "qwen3.7-plus")
+    default_model = getattr(args, "model", "qwen3.5-plus")
 
     def _resolve_model(role_attr: str) -> str:
         """Get role-specific model or fallback to --model."""
