@@ -220,12 +220,19 @@ Propose ONE concrete skill change. Output JSON with:
 - "instruction_template": the LLM instruction template for this skill
 - "update_type": "insert" or "update" or "delete"
 
+## IMPORTANT: Skill Diversity
+- Do NOT always refine the same skill (e.g., "insert"). Consider which skill is MOST relevant to the failure pattern.
+- If failures involve incorrect/outdated memory content, consider refining "update" skill.
+- If failures involve missing information, consider refining "insert" skill.
+- If failures involve noise/contradictions in memory, consider refining "delete" skill.
+- You may also propose "add_new" to create a specialized skill for a specific failure pattern.
+
 ## CRITICAL CONSTRAINTS for instruction_template:
 1. The skill's instruction_template MUST instruct the executor to output actions using ONLY these standard action types: INSERT, UPDATE, DELETE, or NOOP.
 2. The executor output format MUST follow this structure:
    ACTION: INSERT/UPDATE/DELETE/NOOP
    MEMORY_ITEM: <content to store>  (for INSERT)
-   MEMORY_INDEX: <index>  (for UPDATE/DELETE)
+   MEMORY_INDEX: <index> (for UPDATE/DELETE)
    UPDATED_MEMORY: <new content>  (for UPDATE)
    REASONING: <why this action>
 3. Do NOT invent new action types (e.g., no "STRUCTURE_AND_ENRICH", no "PRE-PROCESSING").

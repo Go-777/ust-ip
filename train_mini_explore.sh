@@ -59,11 +59,11 @@ python train_grpo.py \
     --api --api-base "${DASHSCOPE_API_BASE}" \
     --api-key "${DASHSCOPE_API_KEY}" \
     --grpo-enabled \
-    --grpo-group-size 2 \
-    --grpo-max-iterations 2 \
-    --grpo-num-bad-cases 3 \
+    --grpo-group-size 4 \
+    --grpo-max-iterations 3 \
+    --grpo-num-bad-cases 6 \
     --grpo-case-chunk-size 3 \
-    --grpo-temperature 0.7 \
+    --grpo-temperature 0.9 \
     --grpo-max-designer-tokens 2048 \
     --grpo-early-stop-patience 5 \
     --action-top-k 2 \

@@ -1199,7 +1199,7 @@ class GRPOTrainingLoop:
         if best_candidate_text and improved:
             best_candidate_parsed = self.data_preparer._parse_candidate(best_candidate_text)
             if best_candidate_parsed:
-                self._apply_best_candidate(best_candidate_parsed)
+                self._apply_best_candidate(best_candidate_parsed, reward=best_reward)
 
         # Export for OpenRLHF if requested
         if export_dir:
@@ -1227,8 +1227,8 @@ class GRPOTrainingLoop:
 
         return result
 
-    def _apply_best_candidate(self, candidate: Dict):
-        """Apply the best candidate skill to the operation bank."""
+    def _apply_best_candidate(self, candidate: Dict, reward: float = 0.0):
+        """Apply the best candidate skill to the operation bank and update meta_info."""
         action = candidate.get("action", "add_new")
 
         if action == "refine":
@@ -1239,7 +1239,10 @@ class GRPOTrainingLoop:
                     op.description = candidate["description"]
                 if "instruction_template" in candidate:
                     op.instruction_template = candidate["instruction_template"]
-                self.logger.info(f"[GRPOLoop] Refined skill: {target}")
+                # Update meta_info with reward
+                op.record_usage(reward)
+                op.meta_info["last_modified"] = f"grpo_iter_{len(self.iteration_history)}"
+                self.logger.info(f"[GRPOLoop] Refined skill: {target} (reward={reward:.4f})")
                 return
 
         # Default: add new
@@ -1249,8 +1252,11 @@ class GRPOTrainingLoop:
             instruction_template=candidate.get("instruction_template", ""),
             update_type=candidate.get("update_type", "insert"),
         )
+        new_op.record_usage(reward)
+        new_op.meta_info["created_at"] = f"grpo_iter_{len(self.iteration_history)}"
+        new_op.meta_info["last_modified"] = f"grpo_iter_{len(self.iteration_history)}"
         self.operation_bank.operations[new_op.name] = new_op
-        self.logger.info(f"[GRPOLoop] Added new skill: {new_op.name}")
+        self.logger.info(f"[GRPOLoop] Added new skill: {new_op.name} (reward={reward:.4f})")
 
     def should_stop(self) -> bool:
         """Check if training should stop."""
