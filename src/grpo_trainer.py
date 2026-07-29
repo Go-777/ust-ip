@@ -255,7 +255,13 @@ class GRPORewardComputer:
         print(f"  [REWARD-DEBUG] Step3 executor response: {executor_response[:500]}")
 
         # --- Step 4: Apply executor results to memory bank ---
-        mem_count_before = len(temp_memory_bank.memories) if temp_memory_bank else 0
+        # Record original memory contents BEFORE applying executor changes.
+        # This is more robust than index-based tracking because DELETE shifts indices.
+        original_mem_contents = set()
+        if temp_memory_bank is not None:
+            original_mem_contents = {mem.content for mem in temp_memory_bank.memories}
+        mem_count_before = len(original_mem_contents)
+
         if temp_memory_bank is not None:
             try:
                 exec_results = self._parse_executor_response(executor_response)
@@ -275,12 +281,14 @@ class GRPORewardComputer:
             qa_prediction = self._generate_qa_answer(
                 question, temp_memory_bank, retrieved_memories,
                 initial_memory_count=mem_count_before,
+                original_mem_contents=original_mem_contents,
             )
             reward = self._judge_reward(question, ground_truth, qa_prediction)
         else:
             reward = self._compute_qa_f1_reward(
                 question, ground_truth, temp_memory_bank, retrieved_memories,
                 initial_memory_count=mem_count_before,
+                original_mem_contents=original_mem_contents,
             )
 
         # [DEBUG] Print QA result
@@ -525,6 +533,7 @@ class GRPORewardComputer:
         memory_bank: 'MemoryBank',
         fallback_memories: list,
         initial_memory_count: int = 0,
+        original_mem_contents: set = None,
     ) -> str:
         """Generate a QA answer using ONLY executor-produced memories.
 
@@ -538,27 +547,27 @@ class GRPORewardComputer:
             memory_bank: Updated memory bank (contains initial + new memories)
             fallback_memories: Original retrieved memories (used only as fallback
                 if executor produced zero new memories)
-            initial_memory_count: Number of memories before executor ran (to
-                identify which ones are new)
+            initial_memory_count: Number of memories before executor ran (legacy,
+                kept for backward compat)
+            original_mem_contents: Set of memory content strings BEFORE executor ran.
+                Used to identify new/modified memories robustly (unaffected by DELETE).
 
         Returns:
             Generated answer string (or empty string on failure)
         """
         context_memories = []
+        if original_mem_contents is None:
+            original_mem_contents = set()
 
-        # Primary: use executor-produced (new) memories for QA
-      # These are concise factual statements extracted by the skill
-        if memory_bank is not None and len(memory_bank.memories) > initial_memory_count:
-            new_memories = memory_bank.memories[initial_memory_count:]
-            for mem in new_memories[:15]:
-                context_memories.append(mem.content)
-
-        # Also include MODIFIED original memories (updates)
-        if memory_bank is not None and initial_memory_count > 0:
-            original_contents = set(fallback_memories or [])
-            for mem in memory_bank.memories[:initial_memory_count]:
-                if mem.content not in original_contents:
+        # Primary: use executor-produced (new/modified) memories for QA
+        # These are concise factual statements extracted by the skill
+        if memory_bank is not None:
+            for mem in memory_bank.memories:
+                if mem.content not in original_mem_contents:
+                    # This is either a newly INSERT-ed or UPDATE-d memory
                     context_memories.append(mem.content)
+                    if len(context_memories) >= 15:
+                        break
 
         # Fallback: if executor produced nothing new, use original memories
         # This should yield low reward (similar to baseline)
@@ -603,6 +612,7 @@ class GRPORewardComputer:
         memory_bank: 'MemoryBank',
         fallback_memories: list,
         initial_memory_count: int = 0,
+        original_mem_contents: set = None,
     ) -> float:
         """Compute QA F1 reward by generating an answer using updated memories.
 
@@ -614,6 +624,7 @@ class GRPORewardComputer:
             memory_bank: Updated memory bank (or None)
             fallback_memories: Original retrieved memories (used if no memory bank)
             initial_memory_count: Number of memories before executor ran
+            original_mem_contents: Set of memory contents before executor ran
 
         Returns:
             F1 score (0.0 - 1.0)
@@ -621,6 +632,7 @@ class GRPORewardComputer:
         prediction = self._generate_qa_answer(
             question, memory_bank, fallback_memories,
             initial_memory_count=initial_memory_count,
+            original_mem_contents=original_mem_contents,
         )
         if not prediction:
             return 0.0
