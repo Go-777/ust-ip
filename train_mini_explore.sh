@@ -10,6 +10,8 @@ export DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}"
 
 python train_grpo.py \
+    --grpo-enabled \
+    --bad-cases-file "./data/bad_cases_extended.json" \
     --model qwen3.7-flash \
     --selector-model qwen3.7-flash-2026-07-15 \
     --executor-model qwen3.5-plus-2026-04-20 \
