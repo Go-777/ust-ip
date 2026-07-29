@@ -89,7 +89,8 @@ def build_grpo_config_from_args(args, config: AgenticMemoryConfig) -> GRPOConfig
         reward_metric=getattr(config, "reward_metric", "f1"),
         num_bad_cases=getattr(config, "grpo_num_bad_cases", 100),
         max_iterations=getattr(config, "grpo_max_iterations", 50),
-        early_stop_patience=getattr(config, "grpo_early_stop_patience", 5),
+        early_stop_patience=getattr(config, "grpo_early_stop_patience", 15),
+        early_stop_warmup=getattr(config, "grpo_early_stop_warmup", 10),
         case_chunk_size=getattr(config, "grpo_case_chunk_size", 5),
         export_dir=getattr(config, "grpo_export_dir", "./grpo_data"),
         min_apply_threshold=getattr(config, "grpo_min_apply_threshold", 0.3),
@@ -190,6 +191,16 @@ def main():
         skill_selector=skill_selector,
     )
 
+    # ========== 5.5. Attempt Checkpoint Resume ==========
+    checkpoint_dir = os.path.join(getattr(args, "save_dir", "./checkpoints"), "grpo_ckpt")
+    resumed = training_loop.load_checkpoint(checkpoint_dir)
+    if resumed:
+        resumed_iter = len(training_loop.iteration_history)
+        print(f"\n  ✓ Resumed from checkpoint: iteration {resumed_iter}, "
+              f"best_avg_reward={training_loop.best_avg_reward:.4f}")
+    else:
+        print(f"\n  (No checkpoint found, starting fresh)")
+
     # ========== 5. Prepare Prompt Templates ==========
     # Simplified templates for GRPO (bad_cases passed as formatted string)
     analysis_prompt_template = """You are an expert analyst for a memory-augmented QA system.
@@ -255,28 +266,29 @@ Output ONLY valid JSON."""
     print("Starting GRPO Training Loop")
     print("=" * 80)
 
-    iteration = 0
+    iteration = len(training_loop.iteration_history)  # Resume-aware counter
     all_samples = []
+    # Shuffle at start (or on resume) to ensure diversity
+    random.shuffle(bad_cases)
     while not training_loop.should_stop():
         iteration += 1
         print(f"\n{'─' * 60}")
         print(f"  Iteration {iteration}/{grpo_config.max_iterations}")
         print(f"{'─' * 60}")
 
-        # Select chunk of bad cases for this iteration
-        chunk_start = ((iteration - 1) * grpo_config.case_chunk_size) % len(bad_cases)
-        # Shuffle bad_cases every time we complete a full pass
-        if chunk_start == 0 and iteration > 1:
+        # Re-shuffle bad_cases periodically (every num_bad_cases/len ratio iterations)
+        passes_per_shuffle = max(1, len(bad_cases) // grpo_config.num_bad_cases)
+        if iteration > 1 and ((iteration - 1) % passes_per_shuffle) == 0:
             random.shuffle(bad_cases)
-        chunk_end = chunk_start + grpo_config.case_chunk_size
-        if chunk_end > len(bad_cases):
-            chunk = bad_cases[chunk_start:] + bad_cases[:chunk_end - len(bad_cases)]
-        else:
-            chunk = bad_cases[chunk_start:chunk_end]
+
+        # Feed ALL bad cases (up to num_bad_cases) to the iteration.
+        # GRPOTrainingLoop.run() internally chunks them by case_chunk_size
+        # for Stage1 analysis, so each iteration covers the full case set.
+        iteration_cases = bad_cases[:grpo_config.num_bad_cases]
 
         # Run one iteration
         result = training_loop.run(
-            bad_cases=chunk,
+            bad_cases=iteration_cases,
             analysis_prompt_template=analysis_prompt_template,
             refinement_prompt_template=refinement_prompt_template,
             export_dir=grpo_config.export_dir,
@@ -297,6 +309,9 @@ Output ONLY valid JSON."""
         # Collect samples for final export
         if result and result.get("samples"):
             all_samples.extend(result["samples"])
+
+        # Save checkpoint after each iteration (atomic write)
+        training_loop.save_checkpoint(checkpoint_dir)
 
     # ========== 7. Export & Summary ==========
     print("\n" + "=" * 80)

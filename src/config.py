@@ -100,7 +100,8 @@ class AgenticMemoryConfig:
         self.grpo_max_designer_tokens = 4096  # Max tokens for designer generation
         self.grpo_num_bad_cases = 100  # Number of bad cases per GRPO iteration
         self.grpo_max_iterations = 50  # Maximum GRPO training iterations
-        self.grpo_early_stop_patience = 5  # Stop if no improvement for N iterations
+        self.grpo_early_stop_patience = 15  # Stop if no improvement for N iterations
+        self.grpo_early_stop_warmup = 10  # Don't check early stop before this many iters
         self.grpo_case_chunk_size = 5  # Number of cases per analysis batch
         self.grpo_export_dir = "./grpo_data"  # Directory for OpenRLHF export data
         self.grpo_min_apply_threshold = 0.3  # Apply best candidate if best_reward > this
@@ -390,8 +391,10 @@ def get_agentic_memory_args():
                         help='Number of bad cases per GRPO iteration')
     parser.add_argument('--grpo-max-iterations', type=int, default=50,
                         help='Maximum GRPO training iterations')
-    parser.add_argument('--grpo-early-stop-patience', type=int, default=5,
+    parser.add_argument('--grpo-early-stop-patience', type=int, default=15,
                         help='Stop if no improvement for N iterations')
+    parser.add_argument('--grpo-early-stop-warmup', type=int, default=10,
+                        help='Do not check early stop before this many iterations')
     parser.add_argument('--grpo-case-chunk-size', type=int, default=5,
                         help='Number of cases per analysis batch')
     parser.add_argument('--grpo-export-dir', type=str, default='./grpo_data',

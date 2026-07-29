@@ -43,7 +43,8 @@ class GRPOConfig:
     reward_metric: str = "f1"  # "f1" or "llm_judge"
     num_bad_cases: int = 100  # Number of bad cases per GRPO iteration
     max_iterations: int = 50  # Maximum GRPO training iterations
-    early_stop_patience: int = 5  # Stop if no improvement for N iterations
+    early_stop_patience: int = 15  # Stop if no improvement for N iterations
+    early_stop_warmup: int = 10  # Don't check early stop before this many iterations
     case_chunk_size: int = 5  # Number of bad cases per analysis batch
     export_dir: str = "./grpo_data"  # Directory for exported GRPO data
     min_apply_threshold: float = 0.3  # Apply best candidate if best_reward > this threshold
@@ -56,18 +57,42 @@ class GRPOSample:
     prompt: str  # Designer input prompt (bad case analysis)
     responses: List[str] = field(default_factory=list)  # G candidate responses
     rewards: List[float] = field(default_factory=list)  # Reward for each response
+    parse_failures: List[bool] = field(default_factory=list)  # True if candidate failed to parse
     analysis: str = ""  # Stage1 analysis result
 
     @property
     def advantages(self) -> List[float]:
-        """Compute group-relative advantages (normalized within group)."""
+        """Compute group-relative advantages (normalized within group).
+
+        Excludes parse-failed candidates from mean/std computation to avoid
+        giving other candidates a false positive advantage from a 0.0 floor.
+        Parse-failed candidates always get advantage=0.0.
+        """
         if not self.rewards:
             return []
-        mean_r = np.mean(self.rewards)
-        std_r = np.std(self.rewards)
-        if std_r < 1e-8:
+        # Identify valid (non-parse-failure) rewards
+        valid_rewards = []
+        for i, r in enumerate(self.rewards):
+            is_failed = self.parse_failures[i] if i < len(self.parse_failures) else False
+            if not is_failed:
+                valid_rewards.append(r)
+
+        if not valid_rewards:
             return [0.0] * len(self.rewards)
-        return [(r - mean_r) / std_r for r in self.rewards]
+
+        mean_r = np.mean(valid_rewards)
+        std_r = np.std(valid_rewards)
+
+        advantages = []
+        for i, r in enumerate(self.rewards):
+            is_failed = self.parse_failures[i] if i < len(self.parse_failures) else False
+            if is_failed:
+                advantages.append(0.0)  # Parse-failed: no gradient signal
+            elif std_r < 1e-8:
+                advantages.append(0.0)
+            else:
+                advantages.append((r - mean_r) / std_r)
+        return advantages
 
     def best_response_idx(self) -> int:
         """Get index of the best response (highest reward)."""
@@ -80,6 +105,7 @@ class GRPOSample:
             "prompt": self.prompt,
             "responses": self.responses,
             "rewards": self.rewards,
+            "parse_failures": self.parse_failures,
             "analysis": self.analysis,
             "advantages": self.advantages,
         }
@@ -952,6 +978,7 @@ class GRPODataPreparer:
 
             # Compute rewards for each candidate
             rewards = []
+            parse_failure_flags = []
             parse_failures = 0
             for candidate_text in candidates:
                 parsed = self._parse_candidate(candidate_text)
@@ -988,9 +1015,11 @@ class GRPODataPreparer:
                         base_operation_bank_dict=base_op_dict,
                     )
                     print(f"  [GRPO-DEBUG] Reward for this candidate: {reward}")
+                    parse_failure_flags.append(False)
                 else:
                     reward = 0.0
                     parse_failures += 1
+                    parse_failure_flags.append(True)
                     print(f"  [GRPO-DEBUG] Parse FAILED (after retries) for candidate: {candidate_text[:200]}")
                 rewards.append(reward)
 
@@ -1010,6 +1039,7 @@ class GRPODataPreparer:
                 prompt=refinement_prompt,
                 responses=candidates,
                 rewards=rewards,
+                parse_failures=parse_failure_flags,
                 analysis=analysis,
             )
             samples.append(sample)
@@ -1139,6 +1169,16 @@ class GRPOTrainingLoop:
         self.best_avg_reward: float = 0.0
         self.no_improvement_count: int = 0
         self._reward_metric: str = config.reward_metric  # Track metric for consistency check
+        # Track judge model name for baseline reset when model changes
+        self._judge_model: str = self._get_judge_model_name()
+
+    def _get_judge_model_name(self) -> str:
+        """Get the current judge model name from llm_client config."""
+        try:
+            cfg = self.llm_client._role_configs.get("judge")
+            return cfg.model_name if cfg else ""
+        except (AttributeError, KeyError):
+            return ""
 
     def run(
         self,
@@ -1178,6 +1218,18 @@ class GRPOTrainingLoop:
             self.best_avg_reward = 0.0
             self.no_improvement_count = 0
             self._reward_metric = current_metric
+
+        # Safety check: if judge model changed mid-training, reset baseline
+        # (different models have different scoring scales, comparison would be invalid)
+        current_judge = self._get_judge_model_name()
+        if current_judge and current_judge != self._judge_model:
+            self.logger.warning(
+                f"[GRPOLoop] Judge model changed from '{self._judge_model}' to "
+                f"'{current_judge}'. Resetting best_avg_reward baseline."
+            )
+            self.best_avg_reward = 0.0
+            self.no_improvement_count = 0
+            self._judge_model = current_judge
 
         # Prepare GRPO batch (Stage1 + Stage2 + Rewards)
         evolution_history = self._build_evolution_history()
@@ -1359,13 +1411,102 @@ class GRPOTrainingLoop:
         if len(self.iteration_history) >= self.config.max_iterations:
             self.logger.info("[GRPOLoop] Reached max iterations")
             return True
-        if self.no_improvement_count >= self.config.early_stop_patience:
+        # Only check early stopping after warm-up period
+        warmup = getattr(self.config, 'early_stop_warmup', 10)
+        if len(self.iteration_history) >= warmup and self.no_improvement_count >= self.config.early_stop_patience:
             self.logger.info(
                 f"[GRPOLoop] Early stopping: no improvement for "
                 f"{self.config.early_stop_patience} iterations"
             )
             return True
         return False
+
+    def save_checkpoint(self, checkpoint_dir: str):
+        """Save training state checkpoint for resume after interruption.
+
+        Saves:
+        - iteration_history (without non-serializable GRPOSample objects)
+        - best_avg_reward, no_improvement_count
+        - operation_bank state
+        - reward_metric (for consistency check on resume)
+        """
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        checkpoint = {
+            "iteration_history": [
+                {k: v for k, v in h.items() if k != "samples"}
+                for h in self.iteration_history
+            ],
+            "best_avg_reward": self.best_avg_reward,
+            "no_improvement_count": self.no_improvement_count,
+            "reward_metric": self._reward_metric,
+            "total_iterations": len(self.iteration_history),
+        }
+        ckpt_path = os.path.join(checkpoint_dir, "grpo_checkpoint.json")
+        # Write to temp file first, then rename (atomic on POSIX)
+        tmp_path = ckpt_path + ".tmp"
+        with open(tmp_path, 'w') as f:
+            json.dump(checkpoint, f, indent=2, ensure_ascii=False, default=str)
+        os.replace(tmp_path, ckpt_path)
+
+        # Save operation bank alongside
+        ob_path = os.path.join(checkpoint_dir, "operation_bank_checkpoint.json")
+        with open(ob_path, 'w') as f:
+            json.dump(self.operation_bank.to_dict(), f, indent=2, ensure_ascii=False)
+
+        self.logger.info(
+            f"[GRPOLoop] Checkpoint saved: iter={len(self.iteration_history)}, "
+            f"best_avg_reward={self.best_avg_reward:.4f}"
+        )
+
+    def load_checkpoint(self, checkpoint_dir: str) -> bool:
+        """Load checkpoint to resume training. Returns True if checkpoint loaded.
+
+        Restores iteration_history metadata, best_avg_reward, no_improvement_count,
+        and operation_bank state.
+        """
+        ckpt_path = os.path.join(checkpoint_dir, "grpo_checkpoint.json")
+        ob_path = os.path.join(checkpoint_dir, "operation_bank_checkpoint.json")
+
+        if not os.path.exists(ckpt_path):
+            return False
+
+        try:
+            with open(ckpt_path, 'r') as f:
+                checkpoint = json.load(f)
+
+            self.iteration_history = checkpoint.get("iteration_history", [])
+            self.best_avg_reward = checkpoint.get("best_avg_reward", 0.0)
+            self.no_improvement_count = checkpoint.get("no_improvement_count", 0)
+
+            # Restore reward_metric for consistency
+            saved_metric = checkpoint.get("reward_metric", self._reward_metric)
+            if saved_metric != self._reward_metric:
+                self.logger.warning(
+                    f"[GRPOLoop] Checkpoint reward_metric '{saved_metric}' differs from "
+                    f"current '{self._reward_metric}'. Resetting baseline."
+                )
+                self.best_avg_reward = 0.0
+                self.no_improvement_count = 0
+            else:
+                self._reward_metric = saved_metric
+
+            # Restore operation bank if available
+            if os.path.exists(ob_path):
+                with open(ob_path, 'r') as f:
+                    ob_data = json.load(f)
+                # Rebuild operations from checkpoint data
+                self.operation_bank.operations = {}
+                for name, op_data in ob_data.get('operations', {}).items():
+                    self.operation_bank.operations[name] = Operation.from_dict(op_data)
+
+            self.logger.info(
+                f"[GRPOLoop] Checkpoint loaded: resuming from iter={len(self.iteration_history)}, "
+                f"best_avg_reward={self.best_avg_reward:.4f}"
+            )
+            return True
+        except (json.JSONDecodeError, KeyError, IOError) as e:
+            self.logger.warning(f"[GRPOLoop] Failed to load checkpoint: {e}. Starting fresh.")
+            return False
 
     def get_summary(self) -> Dict:
         """Get training summary."""

@@ -2,42 +2,45 @@
 export CUDA_VISIBLE_DEVICES=0
 
 # --disable-flash-attn \
-# --resume-new-wandb-run
 python main.py \
-    --alfworld-eval-query-source objective \
-    --alfworld-pair-a-min 40 \
-    --alfworld-pair-a-max 60 \
-    --alfworld-pair-b-size 5 \
-    --alfworld-pair-b-workers 80 \
-    --alfworld-pair-same-type-prob 1.0 \
+    --memory-cache-suffix "alfworld_train" \
+    --inference-session-workers 1 \
+    --action-top-k 5 \
+    --mem-top-k-eval 20 \
+    --session-mode fixed-length \
+    --chunk-size 512 \
+    --alfworld-pair-chunk-size 512 \
+    --chunk-overlap 64 \
+    --load-checkpoint '[YOUR_CHECKPOINT_PATH]' \
     --dataset alfworld \
+    --alfworld-eval-file "[YOUR_EVAL_FILE_PATH]" \
     --alfworld-offline-data "[YOUR_OFFLINE_DATA_PATH]" \
+    --alfworld-eval-query-source objective \
+    --alfworld-pair-max-steps 50 \
+    --alfworld-pair-b-workers 32 \
     --model "[YOUR_MODEL_NAME]" \
-    --designer-model "[YOUR_DESIGNER_MODEL_NAME]" \
     --api \
     --api-base "[YOUR_API_BASE]" \
     --api-key "YOUR_API_KEY_1" "YOUR_API_KEY_2" \
-    --retriever contriever \
+    --retriever qwen3-embedding-0.6b \
     --designer-freq 1 \
     --inner-epochs 100 \
     --outer-epochs 10 \
-    --batch-size 16 \
-    --encode-batch-size 8 \
-    --session-mode fixed-length \
+    --batch-size 32 \
+    --encode-batch-size 4 \
     --ppo-epochs 2 \
-    --action-top-k 3 \
     --new-action-bias-steps 25 \
     --stage-reward-fraction 0.25 \
     --designer-reflection-cycles 3 \
     --mem-top-k 20 \
-    --mem-top-k-eval 20 \
-    --designer-max-changes 3 \
+    --designer-max-changes 2 \
     --designer-failure-window-epochs 100 \
     --designer-failure-pool-size 2000 \
     --reward-metric llm_judge \
     --designer-new-skill-hint \
     --device cuda \
     --enable-designer \
-    --wandb-run-name alf-train \
+    --skip-load-snapshot-manager \
+    --wandb-run-name train \
     --save-dir ./checkpoints/alf_with_designer \
     --out-file ./results/alf_with_designer.json
