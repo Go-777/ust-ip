@@ -12,8 +12,8 @@ export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}
 python train_grpo.py \
     --grpo-enabled \
     --bad-cases-file "./data/bad_cases_extended.json" \
-    --model qwen3.6-plus \
-    --selector-model qwen3.6-plus \
+    --model qwen3.6-flash \
+    --selector-model qwen3.6-flash \
     --executor-model qwen3.7-plus-2026-05-26 \
     --designer-model qwen3.7-max-preview \
     --judge-model qwen3.7-max-2026-05-17 \
