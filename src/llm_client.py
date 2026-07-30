@@ -31,9 +31,9 @@ class ModelConfig:
     max_tokens: int = 2048
     temperature: float = 0.0
     top_p: float = 1.0
-    max_retries: int = 3
-    timeout: int = 120
-    retry_delay: float = 3.0
+    max_retries: int = 5
+    timeout: int = 300
+    retry_delay: float = 10.0
 
     @classmethod
     def from_env(cls, role: str) -> "ModelConfig":
