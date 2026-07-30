@@ -623,8 +623,10 @@ class GRPORewardComputer:
         )
 
         try:
+            # Use qa_answerer role (cheap model) instead of executor
+            # QA answering is simple reading comprehension, doesn't need expensive model
             prediction = self.llm_client.call(
-                role="executor",
+                role="qa_answerer",
                 prompt=qa_prompt,
                 temperature=0.0,
             )

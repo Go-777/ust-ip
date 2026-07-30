@@ -417,6 +417,8 @@ def get_agentic_memory_args():
                         help='API base URL for Executor (defaults to --api-base)')
     parser.add_argument('--judge-model', type=str, default='qwen3-max',
                         help='Model name for QA Judge (strongest model for reward signal)')
+    parser.add_argument('--qa-model', type=str, default=None,
+                        help='Model name for QA answerer (cheap model for reading comprehension, defaults to --selector-model)')
     parser.add_argument('--judge-api-base', type=str, default=None,
                         help='API base URL for Judge (defaults to --api-base)')
     parser.add_argument('--designer-local-model', type=str, default='qwen3.5-flash',

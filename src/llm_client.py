@@ -446,6 +446,16 @@ def create_llm_client_from_args(args) -> LLMClient:
         temperature=0.0,
     )
 
+    # QA Answerer config (cheap model for reading comprehension in reward evaluation)
+    qa_model = getattr(args, "qa_model", None) or selector_model
+    role_configs["qa_answerer"] = ModelConfig(
+        model_name=qa_model,
+        base_url=selector_base_url,
+        api_keys=api_keys,
+        max_tokens=1024,
+        temperature=0.0,
+    )
+
     # Designer config (also uses gateway API now)
     designer_model = _resolve_model("designer_model")
     designer_base_url = getattr(args, "designer_api_base", None) or base_url

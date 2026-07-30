@@ -1,46 +1,27 @@
 #!/bin/bash
-export CUDA_VISIBLE_DEVICES=0
+# Small-batch GRPO test run — validate pipeline correctness
+# Models: qwen3.7-max(designer) + qwen-plus-latest(executor/judge) + qwen-flash(selector/qa)
+# Config: 5 cases, chunk=5, G=4, 2 iterations (~免费额度)
+export DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}"
+export PYTHONUNBUFFERED=1
 
-# --disable-flash-attn \
-python main.py \
-    --memory-cache-suffix "alfworld_train" \
-    --inference-session-workers 1 \
-    --action-top-k 5 \
-    --mem-top-k-eval 20 \
-    --session-mode fixed-length \
-    --chunk-size 512 \
-    --alfworld-pair-chunk-size 512 \
-    --chunk-overlap 64 \
-    --load-checkpoint '[YOUR_CHECKPOINT_PATH]' \
-    --dataset alfworld \
-    --alfworld-eval-file "[YOUR_EVAL_FILE_PATH]" \
-    --alfworld-offline-data "[YOUR_OFFLINE_DATA_PATH]" \
-    --alfworld-eval-query-source objective \
-    --alfworld-pair-max-steps 50 \
-    --alfworld-pair-b-workers 32 \
-    --model "[YOUR_MODEL_NAME]" \
-    --api \
-    --api-base "[YOUR_API_BASE]" \
-    --api-key "YOUR_API_KEY_1" "YOUR_API_KEY_2" \
-    --retriever qwen3-embedding-0.6b \
-    --designer-freq 1 \
-    --inner-epochs 100 \
-    --outer-epochs 10 \
-    --batch-size 32 \
-    --encode-batch-size 4 \
-    --ppo-epochs 2 \
-    --new-action-bias-steps 25 \
-    --stage-reward-fraction 0.25 \
-    --designer-reflection-cycles 3 \
-    --mem-top-k 20 \
-    --designer-max-changes 2 \
-    --designer-failure-window-epochs 100 \
-    --designer-failure-pool-size 2000 \
-    --reward-metric llm_judge \
-    --designer-new-skill-hint \
-    --device cuda \
-    --enable-designer \
-    --skip-load-snapshot-manager \
-    --wandb-run-name train \
-    --save-dir ./checkpoints/alf_with_designer \
-    --out-file ./results/alf_with_designer.json
+python -u train_grpo.py \
+    --grpo-enabled \
+    --bad-cases-file "./data/bad_cases_extended.json" \
+    --model qwen-flash \
+    --selector-model qwen-flash \
+    --executor-model qwen-plus-latest \
+    --qa-model qwen-flash \
+    --designer-model qwen3.7-max \
+    --judge-model qwen-plus-latest \
+    --grpo-group-size 4 \
+    --grpo-max-iterations 2 \
+    --grpo-num-bad-cases 5 \
+    --grpo-case-chunk-size 5 \
+    --grpo-early-stop-patience 15 \
+    --grpo-early-stop-warmup 10 \
+    --grpo-temperature 0.9 \
+    --grpo-min-apply-threshold 0.3 \
+    --grpo-max-parse-retries 1 \
+    --reward-metric llm_judge
