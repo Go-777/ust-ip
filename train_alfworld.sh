@@ -1,7 +1,10 @@
 #!/bin/bash
-# Small-batch GRPO test run — validate pipeline correctness
+# GRPO pipeline validation run — target ~800K tokens per model (80% of 1M free quota)
 # Models: qwen3.7-max(designer) + qwen-plus-latest(executor/judge) + qwen-flash(selector/qa)
-# Config: 5 cases, chunk=5, G=4, 2 iterations (~免费额度)
+# Token budget estimate:
+#   designer(max):  3iter × 4chunks × ~10K = ~120K tokens
+#   executor+judge(plus): 3×4×20 × 3.1K = ~756K tokens
+#   selector+qa(flash):   3×4×20 × 2.8K = ~672K tokens
 export DASHSCOPE_API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export DASHSCOPE_API_KEY="${DASHSCOPE_API_KEY:?Error: DASHSCOPE_API_KEY not set}"
 export PYTHONUNBUFFERED=1
@@ -15,10 +18,10 @@ python -u train_grpo.py \
     --qa-model qwen-flash \
     --designer-model qwen3.7-max \
     --judge-model qwen-plus-latest \
-    --grpo-group-size 2 \
-    --grpo-max-iterations 1 \
-    --grpo-num-bad-cases 3 \
-    --grpo-case-chunk-size 3 \
+    --grpo-group-size 4 \
+    --grpo-max-iterations 3 \
+    --grpo-num-bad-cases 20 \
+    --grpo-case-chunk-size 5 \
     --grpo-early-stop-patience 15 \
     --grpo-early-stop-warmup 10 \
     --grpo-temperature 0.9 \
