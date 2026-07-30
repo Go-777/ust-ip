@@ -15,10 +15,10 @@ python -u train_grpo.py \
     --qa-model qwen-flash \
     --designer-model qwen3.7-max \
     --judge-model qwen-plus-latest \
-    --grpo-group-size 4 \
-    --grpo-max-iterations 2 \
-    --grpo-num-bad-cases 5 \
-    --grpo-case-chunk-size 5 \
+    --grpo-group-size 2 \
+    --grpo-max-iterations 1 \
+    --grpo-num-bad-cases 3 \
+    --grpo-case-chunk-size 3 \
     --grpo-early-stop-patience 15 \
     --grpo-early-stop-warmup 10 \
     --grpo-temperature 0.9 \
