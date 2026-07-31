@@ -1,0 +1,121 @@
+{
+  "operations": {
+    "insert": {
+      "name": "insert",
+      "description": "Memory management skill for capturing new, durable facts, direct answers, life events, and temporal markers from the current text chunk, utilizing strict ingestion validation to ensure no critical conversational context is dropped.",
+      "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts, answers, and events from the current text chunk with strict validation to ensure absolutely no critical context is lost.\nWhen to use:\n- The text chunk contains direct answers to questions (e.g., locations, plans, preferences, business ventures).\n- The text introduces new entities, significant life events, actions, personal updates, or hobbies.\n- The text contains temporal markers associated with an event.\nHow to apply:\n- STRICT INGESTION: Act as a validation step. Every single message containing a proper noun, location, direct answer, or personal update MUST be stored. Do not omit conversational turns just because they are brief or seem trivial.\n- FAILURE PREVENTION: Past failures show that brief messages containing exact answers (e.g., locations like 'UK' or 'Woodhaven', or business plans like 'hoodie line') are being dropped. You MUST extract and store these as standalone facts.\n- AGGREGATION SUPPORT: Always include explicit, normalized temporal context (e.g., 'On November 22, ...') in the memory item to enable accurate time-bounded retrieval for counting queries.\n- Compare against retrieved memories to avoid duplicates.\n- Split distinct facts into separate items.\n- Ensure each memory item is a complete, logical sentence that can be understood without external context.\nConstraints:\n- Do NOT drop information regarding personal updates, trips, classes, work changes, or travel plans.\n- Only skip purely conversational filler (e.g., greetings, pleasantries) that contains absolutely zero factual information.\n- Do not update or delete existing memories.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content to store>\nREASONING: <why this action>",
+      "update_type": "insert",
+      "meta_info": {
+        "usage_count": 3,
+        "avg_reward": 0.7500000000000001,
+        "recent_rewards": [
+          0.65,
+          0.8,
+          0.8
+        ],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "grpo_iter_2"
+      },
+      "embedding": null
+    },
+    "update": {
+      "name": "update",
+      "description": "Memory management skill for revising an existing memory item when the text chunk provides corrections or new details.",
+      "instruction_template": "Skill: Update Existing Memory\nPurpose: Revise a retrieved memory with new or corrected information from the text chunk.\nWhen to use:\n- The text chunk clarifies, corrects, or extends a retrieved memory.\nHow to apply:\n- Select the best matching memory item.\n- Merge new details into a single updated item.\n- Preserve accurate details that still hold.\nConstraints:\n- Do not create new memories.\n- Do not delete items.\nAction type: UPDATE only.\n",
+      "update_type": "update",
+      "meta_info": {
+        "usage_count": 0,
+        "avg_reward": 0.0,
+        "recent_rewards": [],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "initial"
+      },
+      "embedding": null
+    },
+    "delete": {
+      "name": "delete",
+      "description": "Memory management skill for removing memory items that are incorrect, outdated, or superseded.",
+      "instruction_template": "Skill: Delete Invalid Memory\nPurpose: Remove a retrieved memory that is wrong, outdated, or superseded by the text chunk.\nWhen to use:\n- The text chunk clearly contradicts a memory.\n- A plan or fact is explicitly canceled or replaced.\nHow to apply:\n- Only delete when evidence is explicit.\nConstraints:\n- If uncertain, prefer no action over deletion.\nAction type: DELETE only.\n",
+      "update_type": "delete",
+      "meta_info": {
+        "usage_count": 0,
+        "avg_reward": 0.0,
+        "recent_rewards": [],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "initial"
+      },
+      "embedding": null
+    },
+    "noop": {
+      "name": "noop",
+      "description": "Memory management skill for confirming that no memory changes are required.",
+      "instruction_template": "Skill: No Operation\nPurpose: Confirm no memory changes are needed for the text chunk.\nWhen to use:\n- The text chunk contains no new, corrective, or actionable information.\nConstraints:\n- Emit NOOP only if none of the selected skills produce actions.\nAction type: NOOP only.\n",
+      "update_type": "noop",
+      "meta_info": {
+        "usage_count": 0,
+        "avg_reward": 0.0,
+        "recent_rewards": [],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "initial"
+      },
+      "embedding": null
+    },
+    "insert_atomic_fact": {
+      "name": "insert_atomic_fact",
+      "description": "Specialized skill for extracting and storing high-precision atomic facts (dates, locations, names, events) as standalone items to prevent data loss caused by lossy narrative compression or summarization.",
+      "instruction_template": "Skill: Insert Atomic Fact\nPurpose: Extract and store critical, atomic facts as standalone memory items to ensure they survive storage compression without loss. This skill addresses failures where exact details (dates, locations, events) are dropped during summarization.\nWhen to use:\n- The text contains specific dates, times, or temporal markers associated with events.\n- The text mentions locations, addresses, or places.\n- The text includes names of people, organizations, products, or business ventures.\n- The text announces specific events, plans, milestones, or direct answers.\n- The text contains brief utterances that hold precise factual value.\nHow to apply:\n1. SCAN: Identify all atomic facts in the text chunk. Focus on entities and values that answer 'who', 'what', 'where', 'when'.\n2. EXTRACT: Isolate each fact. Do not summarize or paraphrase critical values (e.g., keep 'Woodhaven' not 'a town'; keep 'Nov 22' not 'soon').\n3. CONTEXTUALIZE: Formulate each fact as a complete, standalone sentence including necessary context. Example: 'User announced a hoodie line business venture on November 22.'\n4. SPLIT: If multiple distinct facts exist, split them into separate items. Never merge distinct facts into a single compressed summary.\n5. VALIDATE: Ensure no critical detail from the source utterance is omitted. Brief messages with facts must be stored.\n6. DEDUPLICATE: Compare against retrieved memories. Only insert if the fact is new or adds missing precision.\nConstraints:\n- Do NOT compress multiple facts into one narrative summary.\n- Do NOT drop information due to brevity of the source text.\n- Prioritize factual precision and retention over conciseness.\n- Only output INSERT actions.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <atomic fact content>\nREASONING: <extraction logic and fact type>",
+      "update_type": "insert",
+      "meta_info": {
+        "usage_count": 1,
+        "avg_reward": 0.85,
+        "recent_rewards": [
+          0.85
+        ],
+        "recent_usage_ema": 0.0,
+        "created_at": "grpo_iter_3",
+        "last_modified": "grpo_iter_3"
+      },
+      "embedding": null
+    },
+    "insert_structured_event": {
+      "name": "insert_structured_event",
+      "description": "Specialized skill for extracting and logging discrete events, state changes, and entity introductions in a standardized, structured format to prevent fragmentation and enable reliable cumulative reasoning, counting, and temporal tracking across sessions.",
+      "instruction_template": "Skill: Insert Structured Event\nPurpose: Log discrete events, state changes, and new entity introductions as structured memory items to prevent data fragmentation and enable reliable aggregation/counting over time. This directly addresses failures where opening turns are truncated and cumulative state tracking breaks down.\nWhen to use:\n- The text announces a new event, plan, trip, or life update.\n- The text introduces a new entity (e.g., pet, project, item) or changes the state/count of an existing one.\n- The text contains temporal markers linked to an action or state change.\n- The text includes the opening 1-3 turns of a session, which frequently contain primary announcements.\nHow to apply:\n1. PRESERVE KEY TURNS: Explicitly scan the first 3 utterances of the session. Do not truncate or skip them, even if brief. These often contain the primary event or temporal anchor.\n2. IDENTIFY & EXTRACT: Locate discrete events, entity introductions, or state updates. Extract exact names, dates, counts, and locations. Do not paraphrase critical values.\n3. STRUCTURE: Format the memory item using a strict, machine-parseable schema to support future aggregation. Use exactly this format:\n[EVENT_LOG] Type: <event_category> | Entity: <entity_name> | Date/Time: <normalized_temporal_marker> | State/Details: <specific_fact_or_change>\n4. SPLIT FOR AGGREGATION: Each log entry must represent a single, countable unit or distinct state change. If multiple entities/events are mentioned, split them into separate INSERT actions.\n5. VALIDATE: Compare against retrieved memories. Only insert if the event/state is new or adds missing temporal/factual precision. Do not duplicate existing logs.\nConstraints:\n- Output ONLY INSERT actions.\n- Do NOT merge multiple distinct events into one log entry.\n- Maintain the exact [EVENT_LOG] schema for all outputs to facilitate structured parsing and counting.\n- Only skip purely conversational filler with zero factual content.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: [EVENT_LOG] Type: <type> | Entity: <entity> | Date/Time: <time> | State/Details: <details>\nREASONING: <why this action>",
+      "update_type": "insert",
+      "meta_info": {
+        "usage_count": 1,
+        "avg_reward": 0.95,
+        "recent_rewards": [
+          0.95
+        ],
+        "recent_usage_ema": 0.0,
+        "created_at": "grpo_iter_4",
+        "last_modified": "grpo_iter_4"
+      },
+      "embedding": null
+    },
+    "insert_verified_detail": {
+      "name": "insert_verified_detail",
+      "description": "Specialized ingestion skill implementing a self-verification gate and recency-based fidelity policy to prevent lossy summarization from dropping QA-critical facts like dates, locations, and specific events.",
+      "instruction_template": "Skill: Insert Verified Detail\nPurpose: Ingest new memories with a mandatory self-verification gate and recency-based fidelity policy to prevent lossy summarization from dropping QA-critical facts (dates, locations, specific events).\nWhen to use:\n- The text chunk contains factual details that are highly likely to be queried (times, places, names, specific plans).\n- The conversation is recent or active, requiring high-fidelity retention.\nHow to apply:\n1. EXTRACT: Identify all critical factual details in the source text. Focus on temporal markers, locations, named entities, and key events.\n2. APPLY RECENCY POLICY: If the source text is from a recent or active session, DO NOT aggressively compress or summarize. Store the exact phrasing or minimally filtered dialogue turns to guarantee immediate answerability.\n3. SELF-VERIFICATION GATE: Before outputting the action, run an internal QA check. Ask yourself: \"If a user asks about this fact later, does this memory item contain the exact answer, or did I drop it as filler?\" If any critical detail is missing or over-summarized, revert to a higher-fidelity version that preserves the raw fact.\n4. CONTEXTUALIZE: Ensure the memory item is a complete, standalone sentence with normalized temporal context if applicable.\n5. DEDUPLICATE: Compare against retrieved memories. Only insert if the fact is new or restores missing precision.\nConstraints:\n- Prioritize factual retention and answerability over brevity.\n- Never drop specific dates, locations, or event details during compression.\n- Only output INSERT actions.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <verified, high-fidelity content to store>\nREASONING: <verification result and why this action>",
+      "update_type": "insert",
+      "meta_info": {
+        "usage_count": 1,
+        "avg_reward": 0.95,
+        "recent_rewards": [
+          0.95
+        ],
+        "recent_usage_ema": 0.0,
+        "created_at": "grpo_iter_5",
+        "last_modified": "grpo_iter_5"
+      },
+      "embedding": null
+    }
+  },
+  "max_ops": 30,
+  "skip_noop": false
+}

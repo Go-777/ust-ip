@@ -1,0 +1,128 @@
+{
+  "iteration_history": [
+    {
+      "best_candidate": {
+        "action": "refine",
+        "target_skill": "insert",
+        "name": "insert",
+        "description": "Memory management skill for capturing new, durable facts from the current text chunk that are not already in memory, with a strict requirement to preserve speaker attributions and contextual completeness.",
+        "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts from the current text chunk that are missing in memory, ensuring no critical context or speaker attributions are lost.\nWhen to use:\n- The text chunk introduces new facts, events, plans, direct answers, or context worth storing.\n- The information is stable and likely useful later.\nHow to apply:\n- Compare against retrieved memories to avoid duplicates.\n- Split distinct facts into separate items.\n- CRITICAL: Explicitly preserve speaker attributions (e.g., 'Joanna mentioned...'), temporal context, and direct answers. Do not drop turns that contain direct answers or key events.\n- Ensure each memory item is a complete, logical sentence that can be understood without external context.\nConstraints:\n- Skip trivial, fleeting, or speculative content.\n- Do not update or delete existing memories.\nAction type: INSERT only.",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.55625,
+      "best_reward": 0.65,
+      "improved": true,
+      "num_samples": 2,
+      "total_candidates": 8
+    },
+    {
+      "best_candidate": {
+        "action": "refine",
+        "target_skill": "insert",
+        "name": "insert",
+        "description": "Memory management skill for capturing new, durable facts, direct answers, life events, and temporal markers from the current text chunk, ensuring critical conversational context is not dropped.",
+        "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts, answers, and events from the current text chunk that are missing in memory, ensuring no critical context is lost.\nWhen to use:\n- The text chunk contains direct answers to questions (e.g., locations, plans, preferences).\n- The text introduces new entities, significant life events, actions, personal updates, or hobbies.\n- The text contains temporal markers (e.g., 'last week', 'next month', 'few days ago') associated with an event.\n- The information is stable and likely useful later.\nHow to apply:\n- Compare against retrieved memories to avoid duplicates.\n- Split distinct facts into separate items.\n- CRITICAL: Extract and preserve ALL speaker attributions, temporal contexts, locations, and direct answers. DO NOT omit conversational turns just because they are brief; if they contain a fact, answer, or event, they MUST be stored.\n- Ensure each memory item is a complete, logical sentence that can be understood without external context.\nConstraints:\n- Do NOT drop information regarding personal updates, trips, classes, work changes, or travel plans under the assumption they are 'trivial'.\n- Only skip purely conversational filler (e.g., greetings, pleasantries) that contains absolutely zero factual information.\n- Do not update or delete existing memories.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content to store>\nREASONING: <why this action>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.6375000000000001,
+      "best_reward": 0.8,
+      "improved": true,
+      "num_samples": 2,
+      "total_candidates": 8
+    },
+    {
+      "best_candidate": {
+        "action": "refine",
+        "target_skill": "insert",
+        "name": "insert",
+        "description": "Memory management skill for capturing new, durable facts, direct answers, life events, and temporal markers from the current text chunk, utilizing strict ingestion validation to ensure no critical conversational context is dropped.",
+        "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts, answers, and events from the current text chunk with strict validation to ensure absolutely no critical context is lost.\nWhen to use:\n- The text chunk contains direct answers to questions (e.g., locations, plans, preferences, business ventures).\n- The text introduces new entities, significant life events, actions, personal updates, or hobbies.\n- The text contains temporal markers associated with an event.\nHow to apply:\n- STRICT INGESTION: Act as a validation step. Every single message containing a proper noun, location, direct answer, or personal update MUST be stored. Do not omit conversational turns just because they are brief or seem trivial.\n- FAILURE PREVENTION: Past failures show that brief messages containing exact answers (e.g., locations like 'UK' or 'Woodhaven', or business plans like 'hoodie line') are being dropped. You MUST extract and store these as standalone facts.\n- AGGREGATION SUPPORT: Always include explicit, normalized temporal context (e.g., 'On November 22, ...') in the memory item to enable accurate time-bounded retrieval for counting queries.\n- Compare against retrieved memories to avoid duplicates.\n- Split distinct facts into separate items.\n- Ensure each memory item is a complete, logical sentence that can be understood without external context.\nConstraints:\n- Do NOT drop information regarding personal updates, trips, classes, work changes, or travel plans.\n- Only skip purely conversational filler (e.g., greetings, pleasantries) that contains absolutely zero factual information.\n- Do not update or delete existing memories.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content to store>\nREASONING: <why this action>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.4125,
+      "best_reward": 0.8,
+      "improved": false,
+      "num_samples": 2,
+      "total_candidates": 8
+    },
+    {
+      "best_candidate": {
+        "action": "add_new",
+        "target_skill": null,
+        "name": "insert_atomic_fact",
+        "description": "Specialized skill for extracting and storing high-precision atomic facts (dates, locations, names, events) as standalone items to prevent data loss caused by lossy narrative compression or summarization.",
+        "instruction_template": "Skill: Insert Atomic Fact\nPurpose: Extract and store critical, atomic facts as standalone memory items to ensure they survive storage compression without loss. This skill addresses failures where exact details (dates, locations, events) are dropped during summarization.\nWhen to use:\n- The text contains specific dates, times, or temporal markers associated with events.\n- The text mentions locations, addresses, or places.\n- The text includes names of people, organizations, products, or business ventures.\n- The text announces specific events, plans, milestones, or direct answers.\n- The text contains brief utterances that hold precise factual value.\nHow to apply:\n1. SCAN: Identify all atomic facts in the text chunk. Focus on entities and values that answer 'who', 'what', 'where', 'when'.\n2. EXTRACT: Isolate each fact. Do not summarize or paraphrase critical values (e.g., keep 'Woodhaven' not 'a town'; keep 'Nov 22' not 'soon').\n3. CONTEXTUALIZE: Formulate each fact as a complete, standalone sentence including necessary context. Example: 'User announced a hoodie line business venture on November 22.'\n4. SPLIT: If multiple distinct facts exist, split them into separate items. Never merge distinct facts into a single compressed summary.\n5. VALIDATE: Ensure no critical detail from the source utterance is omitted. Brief messages with facts must be stored.\n6. DEDUPLICATE: Compare against retrieved memories. Only insert if the fact is new or adds missing precision.\nConstraints:\n- Do NOT compress multiple facts into one narrative summary.\n- Do NOT drop information due to brevity of the source text.\n- Prioritize factual precision and retention over conciseness.\n- Only output INSERT actions.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <atomic fact content>\nREASONING: <extraction logic and fact type>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.5875,
+      "best_reward": 0.85,
+      "improved": false,
+      "num_samples": 4,
+      "total_candidates": 16
+    },
+    {
+      "best_candidate": {
+        "action": "add_new",
+        "target_skill": null,
+        "name": "insert_structured_event",
+        "description": "Specialized skill for extracting and logging discrete events, state changes, and entity introductions in a standardized, structured format to prevent fragmentation and enable reliable cumulative reasoning, counting, and temporal tracking across sessions.",
+        "instruction_template": "Skill: Insert Structured Event\nPurpose: Log discrete events, state changes, and new entity introductions as structured memory items to prevent data fragmentation and enable reliable aggregation/counting over time. This directly addresses failures where opening turns are truncated and cumulative state tracking breaks down.\nWhen to use:\n- The text announces a new event, plan, trip, or life update.\n- The text introduces a new entity (e.g., pet, project, item) or changes the state/count of an existing one.\n- The text contains temporal markers linked to an action or state change.\n- The text includes the opening 1-3 turns of a session, which frequently contain primary announcements.\nHow to apply:\n1. PRESERVE KEY TURNS: Explicitly scan the first 3 utterances of the session. Do not truncate or skip them, even if brief. These often contain the primary event or temporal anchor.\n2. IDENTIFY & EXTRACT: Locate discrete events, entity introductions, or state updates. Extract exact names, dates, counts, and locations. Do not paraphrase critical values.\n3. STRUCTURE: Format the memory item using a strict, machine-parseable schema to support future aggregation. Use exactly this format:\n[EVENT_LOG] Type: <event_category> | Entity: <entity_name> | Date/Time: <normalized_temporal_marker> | State/Details: <specific_fact_or_change>\n4. SPLIT FOR AGGREGATION: Each log entry must represent a single, countable unit or distinct state change. If multiple entities/events are mentioned, split them into separate INSERT actions.\n5. VALIDATE: Compare against retrieved memories. Only insert if the event/state is new or adds missing temporal/factual precision. Do not duplicate existing logs.\nConstraints:\n- Output ONLY INSERT actions.\n- Do NOT merge multiple distinct events into one log entry.\n- Maintain the exact [EVENT_LOG] schema for all outputs to facilitate structured parsing and counting.\n- Only skip purely conversational filler with zero factual content.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: [EVENT_LOG] Type: <type> | Entity: <entity> | Date/Time: <time> | State/Details: <details>\nREASONING: <why this action>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.6,
+      "best_reward": 0.95,
+      "improved": false,
+      "num_samples": 4,
+      "total_candidates": 16
+    },
+    {
+      "best_candidate": {
+        "action": "add_new",
+        "target_skill": null,
+        "name": "insert_verified_detail",
+        "description": "Specialized ingestion skill implementing a self-verification gate and recency-based fidelity policy to prevent lossy summarization from dropping QA-critical facts like dates, locations, and specific events.",
+        "instruction_template": "Skill: Insert Verified Detail\nPurpose: Ingest new memories with a mandatory self-verification gate and recency-based fidelity policy to prevent lossy summarization from dropping QA-critical facts (dates, locations, specific events).\nWhen to use:\n- The text chunk contains factual details that are highly likely to be queried (times, places, names, specific plans).\n- The conversation is recent or active, requiring high-fidelity retention.\nHow to apply:\n1. EXTRACT: Identify all critical factual details in the source text. Focus on temporal markers, locations, named entities, and key events.\n2. APPLY RECENCY POLICY: If the source text is from a recent or active session, DO NOT aggressively compress or summarize. Store the exact phrasing or minimally filtered dialogue turns to guarantee immediate answerability.\n3. SELF-VERIFICATION GATE: Before outputting the action, run an internal QA check. Ask yourself: \"If a user asks about this fact later, does this memory item contain the exact answer, or did I drop it as filler?\" If any critical detail is missing or over-summarized, revert to a higher-fidelity version that preserves the raw fact.\n4. CONTEXTUALIZE: Ensure the memory item is a complete, standalone sentence with normalized temporal context if applicable.\n5. DEDUPLICATE: Compare against retrieved memories. Only insert if the fact is new or restores missing precision.\nConstraints:\n- Prioritize factual retention and answerability over brevity.\n- Never drop specific dates, locations, or event details during compression.\n- Only output INSERT actions.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <verified, high-fidelity content to store>\nREASONING: <verification result and why this action>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.6749999999999999,
+      "best_reward": 0.95,
+      "improved": true,
+      "num_samples": 4,
+      "total_candidates": 16
+    },
+    {
+      "best_candidate": {
+        "action": "refine",
+        "target_skill": "insert",
+        "name": "insert",
+        "description": "Memory management skill for capturing new, durable facts, direct answers, life events, and temporal markers from the current text chunk, utilizing strict turn-level preservation and cross-referencing validation to ensure no critical conversational context (especially initiating turns) is dropped.",
+        "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts, answers, and events from the current text chunk with strict turn-level preservation to ensure absolutely no critical context is lost, particularly session-initiating messages and temporal events.\nWhen to use:\n- The text chunk contains direct answers to questions (e.g., locations, plans, preferences, business ventures).\n- The text introduces new entities, significant life events, actions, personal updates, or hobbies.\n- The text contains temporal markers associated with an event.\n- The text represents the first 1-3 turns of a session (initiating turns).\nHow to apply:\n1. TURN-LEVEL SCAN: Explicitly identify the first 1-3 messages of the session and any messages containing temporal expressions (e.g., 'yesterday', 'last month', 'next month') or new event declarations.\n2. CROSS-REFERENCE VALIDATION: Compare your planned memory items against the raw session transcript. Ensure zero message omission for the identified key turns. If a foundational message is brief, it MUST still be stored.\n3. STRICT INGESTION: Every single message containing a proper noun, location, direct answer, or personal update MUST be stored. Do not omit conversational turns just because they are brief or seem trivial.\n4. AGGREGATION SUPPORT: Always include explicit, normalized temporal context (e.g., 'On November 22, ...') in the memory item to enable accurate time-bounded retrieval.\n5. DEDUPLICATE: Compare against retrieved memories to avoid duplicates. Split distinct facts into separate items.\nConstraints:\n- Do NOT drop information regarding personal updates, trips, classes, work changes, travel plans, or initial session greetings that contain facts.\n- Only skip purely conversational filler (e.g., 'Hi', 'How are you') that contains absolutely zero factual information.\n- Do not update or delete existing memories.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content to store>\nREASONING: <why this action, including validation confirmation>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.2,
+      "best_reward": 0.4,
+      "improved": false,
+      "num_samples": 4,
+      "total_candidates": 16
+    },
+    {
+      "best_candidate": {
+        "action": "add_new",
+        "target_skill": null,
+        "name": "insert_temporal_anchor",
+        "description": "Specialized skill for ingesting facts and events with strict temporal normalization, converting relative time expressions (e.g., 'yesterday') to absolute dates and anchoring implicit present-tense events to the session's exact timestamp to prevent temporal retrieval failures.",
+        "instruction_template": "Skill: Insert Temporal Anchor\nPurpose: Ingest events and facts with strict temporal normalization to ensure all stored memories have explicit, absolute dates. This prevents retrieval failures caused by relative time markers ('yesterday', 'last week') or implicit present-tense events lacking temporal anchors.\nWhen to use:\n- The text contains relative temporal markers (e.g., 'yesterday', 'last month', 'a year ago').\n- The text describes an event in the present tense or as just completed (e.g., 'I finally opened my shop') without an explicit date.\n- The text contains specific dates or times that need to be preserved and normalized.\nHow to apply:\n1. IDENTIFY TEMPORAL CONTEXT: Scan the text for explicit dates, relative time expressions, or implicit present-tense event declarations.\n2. NORMALIZE TO ABSOLUTE DATE: Convert all relative time expressions into absolute dates based on the current session's timestamp (e.g., if the session is on Nov 22, 'yesterday' becomes 'November 21').\n3. ANCHOR IMPLICIT EVENTS: If an event is described in the present tense or as newly completed without a specific time, automatically assign the session's absolute timestamp as the default temporal anchor.\n4. FORMULATE MEMORY: Construct a complete, standalone sentence that includes the normalized absolute date and the core fact. (e.g., 'On November 21, the user went to the store.' or 'On November 22, the user opened their shop.')\n5. DEDUPLICATE: Compare against retrieved memories to avoid duplicates.\nConstraints:\n- NEVER store raw relative time expressions like 'yesterday' or 'recently' without resolving them to an absolute date.\n- NEVER store an event without a temporal anchor; always append the session date if none is provided.\n- Output ONLY INSERT actions.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content with absolute temporal anchor>\nREASONING: <temporal normalization logic and fact extraction>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.2,
+      "best_reward": 0.8,
+      "improved": false,
+      "num_samples": 4,
+      "total_candidates": 16
+    }
+  ],
+  "best_avg_reward": 0.6749999999999999,
+  "no_improvement_count": 2,
+  "reward_metric": "llm_judge",
+  "total_iterations": 8
+}

@@ -1,0 +1,66 @@
+{
+  "operations": {
+    "insert": {
+      "name": "insert",
+      "description": "Memory management skill for capturing new, durable facts from the current text chunk that are not already in memory.",
+      "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts from the current text chunk that are missing in memory.\nWhen to use:\n- The text chunk introduces new facts, events, plans, or context worth storing.\n- The information is stable and likely useful later.\nHow to apply:\n- Compare against retrieved memories to avoid duplicates.\n- Split distinct facts into separate items.\n- Keep each item concise and specific.\nConstraints:\n- Skip trivial, fleeting, or speculative content.\n- Do not update or delete existing memories.\nAction type: INSERT only.\n",
+      "update_type": "insert",
+      "meta_info": {
+        "usage_count": 0,
+        "avg_reward": 0.0,
+        "recent_rewards": [],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "initial"
+      },
+      "embedding": null
+    },
+    "update": {
+      "name": "update",
+      "description": "Memory management skill for revising an existing memory item when the text chunk provides corrections or new details.",
+      "instruction_template": "Skill: Update Existing Memory\nPurpose: Revise a retrieved memory with new or corrected information from the text chunk.\nWhen to use:\n- The text chunk clarifies, corrects, or extends a retrieved memory.\nHow to apply:\n- Select the best matching memory item.\n- Merge new details into a single updated item.\n- Preserve accurate details that still hold.\nConstraints:\n- Do not create new memories.\n- Do not delete items.\nAction type: UPDATE only.\n",
+      "update_type": "update",
+      "meta_info": {
+        "usage_count": 0,
+        "avg_reward": 0.0,
+        "recent_rewards": [],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "initial"
+      },
+      "embedding": null
+    },
+    "delete": {
+      "name": "delete",
+      "description": "Memory management skill for removing memory items that are incorrect, outdated, or superseded.",
+      "instruction_template": "Skill: Delete Invalid Memory\nPurpose: Remove a retrieved memory that is wrong, outdated, or superseded by the text chunk.\nWhen to use:\n- The text chunk clearly contradicts a memory.\n- A plan or fact is explicitly canceled or replaced.\nHow to apply:\n- Only delete when evidence is explicit.\nConstraints:\n- If uncertain, prefer no action over deletion.\nAction type: DELETE only.\n",
+      "update_type": "delete",
+      "meta_info": {
+        "usage_count": 0,
+        "avg_reward": 0.0,
+        "recent_rewards": [],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "initial"
+      },
+      "embedding": null
+    },
+    "noop": {
+      "name": "noop",
+      "description": "Memory management skill for confirming that no memory changes are required.",
+      "instruction_template": "Skill: No Operation\nPurpose: Confirm no memory changes are needed for the text chunk.\nWhen to use:\n- The text chunk contains no new, corrective, or actionable information.\nConstraints:\n- Emit NOOP only if none of the selected skills produce actions.\nAction type: NOOP only.\n",
+      "update_type": "noop",
+      "meta_info": {
+        "usage_count": 0,
+        "avg_reward": 0.0,
+        "recent_rewards": [],
+        "recent_usage_ema": 0.0,
+        "created_at": "initial",
+        "last_modified": "initial"
+      },
+      "embedding": null
+    }
+  },
+  "max_ops": 30,
+  "skip_noop": false
+}
