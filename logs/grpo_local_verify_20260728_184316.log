@@ -1,0 +1,124 @@
+[INFO] Running in WANDB offline mode
+LANGCHAIN INITIALIZATION FAILED
+
+================================================================================
+Initializing LLM Client...
+================================================================================
+  Roles configured: ['selector', 'executor', 'judge', 'designer']
+
+Initializing OperationBank...
+Initializing SkillSelector...
+
+================================================================================
+Loading Bad Cases...
+================================================================================
+  Loaded 4 bad cases from ./data/bad_cases_mini.json
+
+================================================================================
+Setting up GRPO Training Loop...
+================================================================================
+  Group size (G): 2
+  Temperature: 0.7
+  Max iterations: 1
+  Early stop patience: 5
+  Case chunk size: 2
+  Export dir: ./grpo_data/local_verify
+
+================================================================================
+Starting GRPO Training Loop
+================================================================================
+
+────────────────────────────────────────────────────────────
+  Iteration 1/1
+────────────────────────────────────────────────────────────
+  [GRPO-DEBUG] Stage1 analysis OK (len=1840)
+  [GRPO-DEBUG] Stage1 first 300 chars: {
+  "failure_patterns": [
+    {
+      "pattern": "retrieval_failure",
+      "description": "The system retrieved memories that are topically related to the question (e.g., 'Melanie went to yoga class' for a question about her painting start date) but failed to retrieve the semantically relevant memo
+  [GRPO-DEBUG] Stage2 got 2 candidates
+  [GRPO-DEBUG] Candidate 0 (first 200 chars): {
+  "action": "refine",
+  "target_skill": "insert",
+  "name": "insert",
+  "description": "Memory management skill for capturing new, durable, semantically grounded facts from the current text chunk — 
+  [GRPO-DEBUG] Candidate 1 (first 200 chars): {
+  "action": "refine",
+  "target_skill": "insert",
+  "name": "insert",
+  "description": "Memory management skill for capturing new, durable facts from the current text chunk that are not already in m
+  [GRPO-DEBUG] Parsed OK: name=insert, action=refine, update_type=insert
+  [REWARD-DEBUG] Step2 selected skills: ['insert']
+  [REWARD-DEBUG] Step3 executor response: INSERT: ['Melanie', 'started painting sunrises', '2022']
+  [REWARD-DEBUG] Step4 parsed 0 results: []
+  [REWARD-DEBUG] Step4 memory count: 2 -> 2
+  [REWARD-DEBUG] Step5+6 question: When did Melanie start painting sunrises?
+  [REWARD-DEBUG] Step5+6 ground_truth: 2022
+  [REWARD-DEBUG] Step5+6 reward_metric: f1
+  [REWARD-DEBUG] Step5+6 reward: 0.0
+  ---
+  [REWARD-DEBUG] Step2 selected skills: ['insert']
+  [REWARD-DEBUG] Step3 executor response: INSERT: ['Alex', 'got promoted to senior engineer at', 'Google', 'last week']  
+INSERT: ['Alex', 'started at', 'Google', '2021']  
+INSERT: ['Alex', 'was at', 'Microsoft', 'before Google']  
+INSERT: ['Alex', 'worked at', 'Microsoft', '2 years']  
+INSERT: ['Alex', 'worked on', 'cloud infrastructure', 'at Microsoft']  
+
+Rationale per STEP:
+
+STEP 1: Identify anchored declarative facts  
+- “I just got promoted to senior engineer at Google last week!” → subject=Alex, predicate=got promoted to senior e
+  [REWARD-DEBUG] Step4 parsed 0 results: []
+  [REWARD-DEBUG] Step4 memory count: 2 -> 2
+  [REWARD-DEBUG] Step5+6 question: Where did Alex work before Google?
+  [REWARD-DEBUG] Step5+6 ground_truth: Microsoft
+  [REWARD-DEBUG] Step5+6 reward_metric: f1
+  [REWARD-DEBUG] Step5+6 reward: 0.0
+  ---
+  [GRPO-DEBUG] Reward for this candidate: 0.0
+  [GRPO-DEBUG] Parsed OK: name=insert, action=refine, update_type=insert
+  [REWARD-DEBUG] Step2 selected skills: ['insert']
+  [REWARD-DEBUG] Step3 executor response: INSERT  
+MEMORY_ITEM: ['Melanie', 'started painting sunrises', '2022']  
+REASONING: The statement “I also started painting sunrises in 2022” is a declarative, temporally anchored fact about Melanie’s sustained activity (not a one-off event), with clear subject (Melanie), predicate (started painting sunrises), object (sunrises — implied as the thing painted; “painting sunrises” functions as a compound predicate-object unit per skill guidelines), and canonical temporal anchor ('2022'). It is stabl
+  [REWARD-DEBUG] Step4 parsed 3 results: [('INSERT', "['Melanie', 'started painting sunrises', '2022']"), ('NOOP', ''), ('NOOP', '')]
+  [REWARD-DEBUG] Step4 memory count: 2 -> 3
+  [REWARD-DEBUG] Step5+6 question: When did Melanie start painting sunrises?
+  [REWARD-DEBUG] Step5+6 ground_truth: 2022
+  [REWARD-DEBUG] Step5+6 reward_metric: f1
+  [REWARD-DEBUG] Step5+6 reward: 1.0
+  ---
+  [REWARD-DEBUG] Step2 selected skills: ['insert']
+  [REWARD-DEBUG] Step3 executor response: INSERT  
+MEMORY_ITEM: ['Alex', 'got promoted to senior engineer at Google', 'last week']  
+REASONING: This is a declarative, temporally anchored fact (‘last week’) about Alex’s role change — distinct from existing memory #0, which only states “Alex got promoted at Google” without specifying the role (“senior engineer”) or the precise temporal anchor (“last week”). The predicate-object pair “got promoted to senior engineer at Google” and temporal anchor “last week” are both new and verifiable; me
+  [REWARD-DEBUG] Step4 parsed 8 results: [('INSERT', "['Alex', 'got promoted to senior engineer at Google', 'last week']"), ('INSERT', "['Alex', 'started at Google as a junior', '2021']"), ('INSERT', "['Alex', 'was at Microsoft', 'before Google']"), ('INSERT', "['Alex', 'was at Microsoft doing cloud infrastructure', '2 years']"), ('INSERT', "['Alex', 'got promoted to senior engineer at Google', 'last week']"), ('INSERT', "['Alex', 'started at Google as a junior', '2021']"), ('INSERT', "['Alex', 'was at Microsoft', 'before Google']"), ('INSERT', "['Alex', 'was at Microsoft doing cloud infrastructure', '2 years']")]
+  [REWARD-DEBUG] Step4 memory count: 2 -> 10
+  [REWARD-DEBUG] Step5+6 question: Where did Alex work before Google?
+  [REWARD-DEBUG] Step5+6 ground_truth: Microsoft
+  [REWARD-DEBUG] Step5+6 reward_metric: f1
+  [REWARD-DEBUG] Step5+6 reward: 1.0
+  ---
+  [GRPO-DEBUG] Reward for this candidate: 1.0
+  Best reward: 1.0000
+  Avg reward: 0.5000
+  Improved: True
+
+================================================================================
+GRPO Training Complete!
+================================================================================
+  Total iterations: 1
+  Best avg reward: 0.5000
+  Reward history: [0.5]
+
+  Exported 1 GRPO samples to: ./grpo_data/local_verify/grpo_training_data_all.jsonl
+  Use with OpenRLHF for Qwen3.5-9B weight updates.
+  Saved final operation bank to: ./grpo_data/local_verify/operation_bank_final.json
+
+================================================================================
+Done! Next steps:
+  1. Use grpo_training_data_all.jsonl with OpenRLHF for Qwen3.5-9B fine-tuning
+  2. Deploy fine-tuned model as new Designer
+  3. Re-evaluate on test set
+================================================================================

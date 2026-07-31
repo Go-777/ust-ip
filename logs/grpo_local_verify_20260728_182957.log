@@ -1,0 +1,52 @@
+[INFO] Running in WANDB offline mode
+LANGCHAIN INITIALIZATION FAILED
+
+================================================================================
+Initializing LLM Client...
+================================================================================
+  Roles configured: ['selector', 'executor', 'judge', 'designer']
+
+Initializing OperationBank...
+Initializing SkillSelector...
+
+================================================================================
+Loading Bad Cases...
+================================================================================
+  Loaded 4 bad cases from ./data/bad_cases_mini.json
+
+================================================================================
+Setting up GRPO Training Loop...
+================================================================================
+  Group size (G): 2
+  Temperature: 0.7
+  Max iterations: 1
+  Early stop patience: 5
+  Case chunk size: 2
+  Export dir: ./grpo_data/local_verify
+
+================================================================================
+Starting GRPO Training Loop
+================================================================================
+
+────────────────────────────────────────────────────────────
+  Iteration 1/1
+────────────────────────────────────────────────────────────
+  Avg reward: 0.0000, no improvement.
+
+================================================================================
+GRPO Training Complete!
+================================================================================
+  Total iterations: 1
+  Best avg reward: 0.0000
+  Reward history: [0.0]
+
+  Exported 1 GRPO samples to: ./grpo_data/local_verify/grpo_training_data_all.jsonl
+  Use with OpenRLHF for Qwen3.5-9B weight updates.
+  Saved final operation bank to: ./grpo_data/local_verify/operation_bank_final.json
+
+================================================================================
+Done! Next steps:
+  1. Use grpo_training_data_all.jsonl with OpenRLHF for Qwen3.5-9B fine-tuning
+  2. Deploy fine-tuned model as new Designer
+  3. Re-evaluate on test set
+================================================================================
