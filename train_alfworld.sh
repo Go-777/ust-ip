@@ -17,11 +17,11 @@ python -u train_grpo.py \
     --designer-model qwen3.7-max-2026-06-08 \
     --judge-model qwen-plus-2025-07-28 \
     --grpo-group-size 4 \
-    --grpo-max-iterations 50 \
+    --grpo-max-iterations 9 \
     --grpo-num-bad-cases 20 \
     --grpo-case-chunk-size 5 \
-    --grpo-early-stop-patience 50 \
-    --grpo-early-stop-warmup 50 \
+    --grpo-early-stop-patience 15 \
+    --grpo-early-stop-warmup 10 \
     --grpo-temperature 0.9 \
     --grpo-min-apply-threshold 0.3 \
     --grpo-max-parse-retries 1 \
