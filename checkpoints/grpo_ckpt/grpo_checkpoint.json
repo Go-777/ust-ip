@@ -119,10 +119,25 @@
       "improved": false,
       "num_samples": 4,
       "total_candidates": 16
+    },
+    {
+      "best_candidate": {
+        "action": "add_new",
+        "target_skill": null,
+        "name": "resolve_temporal_expressions",
+        "description": "Specialized skill for converting relative temporal expressions in retrieved memories (e.g., 'yesterday', 'last Friday', 'next Saturday') into absolute dates during QA inference by anchoring them to the session timestamp, ensuring precise answers instead of vague approximations.",
+        "instruction_template": "Skill: Resolve Temporal Expressions\nPurpose: During question answering, when a retrieved memory contains relative time expressions (e.g., 'yesterday', 'last week', 'next Saturday'), resolve them to absolute dates using the session’s timestamp to enable precise factual responses.\nWhen to use:\n- A retrieved memory contains a relative temporal expression linked to an event.\n- The session timestamp is available and unambiguous.\n- The question asks for a specific date or time period that can be derived from this anchoring.\nHow to apply:\n1. IDENTIFY RELATIVE EXPRESSION: Locate any relative time phrase in the retrieved memory (e.g., 'yesterday', 'last Friday').\n2. ANCHOR TO SESSION TIMESTAMP: Use the exact session date to compute the absolute date (e.g., if session = 10 August 2022 and text says 'yesterday', compute 9 August 2022).\n3. VALIDATE CONTEXT: Confirm the computed date aligns with the narrative context (e.g., 'last Friday' before 16 November 2023 → 10 November 2023).\n4. GENERATE PRECISE ANSWER: Override vague phrasing and output the exact inferred date or time range.\n5. OUTPUT MEMORY UPDATE (if needed): If this resolved date should be stored for future QA, generate an INSERT action with the normalized fact.\nConstraints:\n- NEVER output vague temporal language (e.g., 'sometime last year') when an exact date is computable.\n- ONLY perform this resolution when the session timestamp is explicitly known.\n- This skill operates during QA inference but may trigger a memory INSERT to cache the resolved fact.\nAction type: INSERT only (to store the resolved absolute-date fact if not already present).\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <fact with absolute date, e.g., 'On August 9, 2022, James took his dogs to the beach.'>\nREASONING: <temporal resolution logic: 'Original memory stated \"yesterday\" relative to session on August 10, 2022; resolved to August 9, 2022.'>",
+        "update_type": "insert"
+      },
+      "avg_reward": 0.475,
+      "best_reward": 0.75,
+      "improved": false,
+      "num_samples": 4,
+      "total_candidates": 16
     }
   ],
   "best_avg_reward": 0.6749999999999999,
-  "no_improvement_count": 2,
+  "no_improvement_count": 3,
   "reward_metric": "llm_judge",
-  "total_iterations": 8
+  "total_iterations": 9
 }

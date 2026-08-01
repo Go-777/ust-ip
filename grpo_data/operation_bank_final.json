@@ -2,20 +2,21 @@
   "operations": {
     "insert": {
       "name": "insert",
-      "description": "Memory management skill for capturing new, durable facts, direct answers, life events, and temporal markers from the current text chunk, utilizing strict ingestion validation to ensure no critical conversational context is dropped.",
-      "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts, answers, and events from the current text chunk with strict validation to ensure absolutely no critical context is lost.\nWhen to use:\n- The text chunk contains direct answers to questions (e.g., locations, plans, preferences, business ventures).\n- The text introduces new entities, significant life events, actions, personal updates, or hobbies.\n- The text contains temporal markers associated with an event.\nHow to apply:\n- STRICT INGESTION: Act as a validation step. Every single message containing a proper noun, location, direct answer, or personal update MUST be stored. Do not omit conversational turns just because they are brief or seem trivial.\n- FAILURE PREVENTION: Past failures show that brief messages containing exact answers (e.g., locations like 'UK' or 'Woodhaven', or business plans like 'hoodie line') are being dropped. You MUST extract and store these as standalone facts.\n- AGGREGATION SUPPORT: Always include explicit, normalized temporal context (e.g., 'On November 22, ...') in the memory item to enable accurate time-bounded retrieval for counting queries.\n- Compare against retrieved memories to avoid duplicates.\n- Split distinct facts into separate items.\n- Ensure each memory item is a complete, logical sentence that can be understood without external context.\nConstraints:\n- Do NOT drop information regarding personal updates, trips, classes, work changes, or travel plans.\n- Only skip purely conversational filler (e.g., greetings, pleasantries) that contains absolutely zero factual information.\n- Do not update or delete existing memories.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content to store>\nREASONING: <why this action>",
+      "description": "Memory management skill for capturing new, durable facts, direct answers, life events, and temporal markers from the current text chunk, utilizing strict turn-level preservation and cross-referencing validation to ensure no critical conversational context (especially initiating turns) is dropped.",
+      "instruction_template": "Skill: Insert New Memory\nPurpose: Capture new, durable facts, answers, and events from the current text chunk with strict turn-level preservation to ensure absolutely no critical context is lost, particularly session-initiating messages and temporal events.\nWhen to use:\n- The text chunk contains direct answers to questions (e.g., locations, plans, preferences, business ventures).\n- The text introduces new entities, significant life events, actions, personal updates, or hobbies.\n- The text contains temporal markers associated with an event.\n- The text represents the first 1-3 turns of a session (initiating turns).\nHow to apply:\n1. TURN-LEVEL SCAN: Explicitly identify the first 1-3 messages of the session and any messages containing temporal expressions (e.g., 'yesterday', 'last month', 'next month') or new event declarations.\n2. CROSS-REFERENCE VALIDATION: Compare your planned memory items against the raw session transcript. Ensure zero message omission for the identified key turns. If a foundational message is brief, it MUST still be stored.\n3. STRICT INGESTION: Every single message containing a proper noun, location, direct answer, or personal update MUST be stored. Do not omit conversational turns just because they are brief or seem trivial.\n4. AGGREGATION SUPPORT: Always include explicit, normalized temporal context (e.g., 'On November 22, ...') in the memory item to enable accurate time-bounded retrieval.\n5. DEDUPLICATE: Compare against retrieved memories to avoid duplicates. Split distinct facts into separate items.\nConstraints:\n- Do NOT drop information regarding personal updates, trips, classes, work changes, travel plans, or initial session greetings that contain facts.\n- Only skip purely conversational filler (e.g., 'Hi', 'How are you') that contains absolutely zero factual information.\n- Do not update or delete existing memories.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content to store>\nREASONING: <why this action, including validation confirmation>",
       "update_type": "insert",
       "meta_info": {
-        "usage_count": 3,
-        "avg_reward": 0.7500000000000001,
+        "usage_count": 4,
+        "avg_reward": 0.6625000000000001,
         "recent_rewards": [
           0.65,
           0.8,
-          0.8
+          0.8,
+          0.4
         ],
         "recent_usage_ema": 0.0,
         "created_at": "initial",
-        "last_modified": "grpo_iter_2"
+        "last_modified": "grpo_iter_6"
       },
       "embedding": null
     },
@@ -112,6 +113,40 @@
         "recent_usage_ema": 0.0,
         "created_at": "grpo_iter_5",
         "last_modified": "grpo_iter_5"
+      },
+      "embedding": null
+    },
+    "insert_temporal_anchor": {
+      "name": "insert_temporal_anchor",
+      "description": "Specialized skill for ingesting facts and events with strict temporal normalization, converting relative time expressions (e.g., 'yesterday') to absolute dates and anchoring implicit present-tense events to the session's exact timestamp to prevent temporal retrieval failures.",
+      "instruction_template": "Skill: Insert Temporal Anchor\nPurpose: Ingest events and facts with strict temporal normalization to ensure all stored memories have explicit, absolute dates. This prevents retrieval failures caused by relative time markers ('yesterday', 'last week') or implicit present-tense events lacking temporal anchors.\nWhen to use:\n- The text contains relative temporal markers (e.g., 'yesterday', 'last month', 'a year ago').\n- The text describes an event in the present tense or as just completed (e.g., 'I finally opened my shop') without an explicit date.\n- The text contains specific dates or times that need to be preserved and normalized.\nHow to apply:\n1. IDENTIFY TEMPORAL CONTEXT: Scan the text for explicit dates, relative time expressions, or implicit present-tense event declarations.\n2. NORMALIZE TO ABSOLUTE DATE: Convert all relative time expressions into absolute dates based on the current session's timestamp (e.g., if the session is on Nov 22, 'yesterday' becomes 'November 21').\n3. ANCHOR IMPLICIT EVENTS: If an event is described in the present tense or as newly completed without a specific time, automatically assign the session's absolute timestamp as the default temporal anchor.\n4. FORMULATE MEMORY: Construct a complete, standalone sentence that includes the normalized absolute date and the core fact. (e.g., 'On November 21, the user went to the store.' or 'On November 22, the user opened their shop.')\n5. DEDUPLICATE: Compare against retrieved memories to avoid duplicates.\nConstraints:\n- NEVER store raw relative time expressions like 'yesterday' or 'recently' without resolving them to an absolute date.\n- NEVER store an event without a temporal anchor; always append the session date if none is provided.\n- Output ONLY INSERT actions.\nAction type: INSERT only.\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <content with absolute temporal anchor>\nREASONING: <temporal normalization logic and fact extraction>",
+      "update_type": "insert",
+      "meta_info": {
+        "usage_count": 1,
+        "avg_reward": 0.8,
+        "recent_rewards": [
+          0.8
+        ],
+        "recent_usage_ema": 0.0,
+        "created_at": "grpo_iter_7",
+        "last_modified": "grpo_iter_7"
+      },
+      "embedding": null
+    },
+    "resolve_temporal_expressions": {
+      "name": "resolve_temporal_expressions",
+      "description": "Specialized skill for converting relative temporal expressions in retrieved memories (e.g., 'yesterday', 'last Friday', 'next Saturday') into absolute dates during QA inference by anchoring them to the session timestamp, ensuring precise answers instead of vague approximations.",
+      "instruction_template": "Skill: Resolve Temporal Expressions\nPurpose: During question answering, when a retrieved memory contains relative time expressions (e.g., 'yesterday', 'last week', 'next Saturday'), resolve them to absolute dates using the session’s timestamp to enable precise factual responses.\nWhen to use:\n- A retrieved memory contains a relative temporal expression linked to an event.\n- The session timestamp is available and unambiguous.\n- The question asks for a specific date or time period that can be derived from this anchoring.\nHow to apply:\n1. IDENTIFY RELATIVE EXPRESSION: Locate any relative time phrase in the retrieved memory (e.g., 'yesterday', 'last Friday').\n2. ANCHOR TO SESSION TIMESTAMP: Use the exact session date to compute the absolute date (e.g., if session = 10 August 2022 and text says 'yesterday', compute 9 August 2022).\n3. VALIDATE CONTEXT: Confirm the computed date aligns with the narrative context (e.g., 'last Friday' before 16 November 2023 → 10 November 2023).\n4. GENERATE PRECISE ANSWER: Override vague phrasing and output the exact inferred date or time range.\n5. OUTPUT MEMORY UPDATE (if needed): If this resolved date should be stored for future QA, generate an INSERT action with the normalized fact.\nConstraints:\n- NEVER output vague temporal language (e.g., 'sometime last year') when an exact date is computable.\n- ONLY perform this resolution when the session timestamp is explicitly known.\n- This skill operates during QA inference but may trigger a memory INSERT to cache the resolved fact.\nAction type: INSERT only (to store the resolved absolute-date fact if not already present).\n\nOutput Format:\nACTION: INSERT\nMEMORY_ITEM: <fact with absolute date, e.g., 'On August 9, 2022, James took his dogs to the beach.'>\nREASONING: <temporal resolution logic: 'Original memory stated \"yesterday\" relative to session on August 10, 2022; resolved to August 9, 2022.'>",
+      "update_type": "insert",
+      "meta_info": {
+        "usage_count": 1,
+        "avg_reward": 0.75,
+        "recent_rewards": [
+          0.75
+        ],
+        "recent_usage_ema": 0.0,
+        "created_at": "grpo_iter_8",
+        "last_modified": "grpo_iter_8"
       },
       "embedding": null
     }
