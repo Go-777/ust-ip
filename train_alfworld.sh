@@ -12,7 +12,7 @@
 # Model allocation (updated — use highest-quota models):
 #   designer  → qwen3.7-max-2026-05-17     (85.86% quota, high capability for design)
 #   selector  → qwen3.7-plus-2026-05-26    (~65% quota)
-#   executor  → qwen3.6-max-preview         (~30% quota, good instruction following)
+#   executor  → qwen3.7-max-2026-05-20       (65.8% quota, good instruction following)
 #   qa        → qwen3.7-max-preview         (~45% quota)
 #   judge     → qwen3.6-plus-2026-04-02    (100% quota! simple scoring task, plus is sufficient)
 #
@@ -33,7 +33,7 @@ python -u train_grpo.py \
     --save-dir "./checkpoints_grpo" \
     --model qwen3.7-plus-2026-05-26 \
     --selector-model qwen3.7-plus-2026-05-26 \
-    --executor-model qwen3.6-max-preview \
+    --executor-model qwen3.7-max-2026-05-20 \
     --qa-model qwen3.7-max-preview \
     --designer-model qwen3.7-max-2026-05-17 \
     --judge-model qwen3.6-plus-2026-04-02 \
