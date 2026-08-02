@@ -36,8 +36,8 @@ python train_sft_designer.py \
     --data_path grpo_data/sft_train.jsonl \
     --output_dir checkpoints/designer_sft \
     --num_train_epochs 3 \
-    --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 8 \
+    --per_device_train_batch_size 2 \
+    --gradient_accumulation_steps 4 \
     --learning_rate 2e-4 \
     --max_seq_length 8192 \
     --lora_rank 32 \
@@ -46,6 +46,7 @@ python train_sft_designer.py \
     --warmup_ratio 0.1 \
     --logging_steps 1 \
     --save_steps 10 \
+    --no-use_4bit \
     2>&1 | tee logs/designer_sft_$(date +%Y%m%d_%H%M%S).log
 
 echo ""

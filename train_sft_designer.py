@@ -19,11 +19,12 @@ from pathlib import Path
 
 import torch
 from datasets import Dataset
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-)
+from transformers import AutoModelForCausalLM, AutoTokenizer
+try:
+    from transformers import BitsAndBytesConfig
+    _BNB_AVAILABLE = True
+except ImportError:
+    _BNB_AVAILABLE = False
 from peft import LoraConfig, TaskType, get_peft_model
 from trl import SFTTrainer, SFTConfig
 
@@ -59,8 +60,8 @@ def main():
     parser.add_argument("--lora_rank", type=int, default=32)
     parser.add_argument("--lora_alpha", type=int, default=64)
     parser.add_argument("--lora_dropout", type=float, default=0.1)
-    parser.add_argument("--use_4bit", action="store_true", default=True,
-                        help="Use 4-bit quantization (QLoRA)")
+    parser.add_argument("--use_4bit", action=argparse.BooleanOptionalAction, default=True,
+                        help="Use 4-bit quantization (QLoRA). Use --no-use_4bit to disable.")
     parser.add_argument("--bf16", action="store_true", default=True)
     parser.add_argument("--gradient_checkpointing", action="store_true", default=True)
     parser.add_argument("--logging_steps", type=int, default=1)
@@ -88,12 +89,16 @@ def main():
     # Quantization config for QLoRA
     bnb_config = None
     if args.use_4bit:
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16,
-            bnb_4bit_use_double_quant=True,
-        )
+        if not _BNB_AVAILABLE:
+            print("WARNING: bitsandbytes not available, falling back to bf16 LoRA (no 4-bit)")
+            args.use_4bit = False
+        else:
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_use_double_quant=True,
+            )
 
     # Load model
     print("\nLoading model...")
