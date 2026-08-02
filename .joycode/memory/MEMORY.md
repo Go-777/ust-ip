@@ -6,4 +6,4 @@
 
 - [禁止硬编码API Key](feedback_no_hardcoded_keys.md) — 永远不要在代码或脚本中硬编码API key，必须使用环境变量引用
 
-- [不使用JD Cloud平台](feedback_no_jdcloud.md) — 训练和开发不再使用JD Cloud Notebook，不要建议SSH到nb-*机器
+- [JD Cloud训练环境](feedback_no_jdcloud.md) — MemSkill训练已迁移到JD Cloud nb-m7wkdajepx机器(6.202.10.185)，不使用SuperPod
