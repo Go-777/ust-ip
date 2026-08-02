@@ -5,10 +5,10 @@ Agentic Memory System with Co-evolving Memory and Operation Banks
 from .memory_bank import MemoryBank
 from .operation_bank import OperationBank
 
-# Lazy import for Executor (depends on llm_utils which requires tiktoken/transformers)
+# Lazy import for Executor (depends on rag_utils which requires sentence_transformers/torch)
 try:
     from .executor import Executor
-except ImportError:
+except (ImportError, OSError, RuntimeError):
     Executor = None
 
 # Lazy imports for torch-dependent modules
@@ -18,7 +18,7 @@ try:
     from .designer import Designer
     from .trainer import BaseTrainer, OfflineTrainer, get_trainer
     _TORCH_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError, RuntimeError):
     PPOController = None
     LLMController = None
     Designer = None
@@ -31,7 +31,7 @@ except ImportError:
 try:
     from . import data_processing
     from . import eval
-except ImportError:
+except (ImportError, OSError, RuntimeError):
     data_processing = None
     eval = None
 
